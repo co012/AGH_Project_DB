@@ -1,0 +1,6 @@
+CREATE FUNCTION getYearMonth (@date DATETIME)
+RETURNS INT
+AS
+BEGIN
+RETURN YEAR(@date) * 100 + MONTH(@date)
+END

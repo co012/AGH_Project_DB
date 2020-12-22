@@ -1,0 +1,6 @@
+CREATE FUNCTION getYearQuater (@date DATETIME)
+RETURNS INT
+AS
+BEGIN
+RETURN YEAR(@date) * 10 + (MONTH(@date) + 3) / 4
+END
