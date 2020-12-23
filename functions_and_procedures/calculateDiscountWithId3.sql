@@ -18,7 +18,7 @@ BEGIN
 	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
 	ELSE RETURN 0;
 END
-ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId) > @minVal RETURN @discount;
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId AND NOT StatusId = 5) > @minVal RETURN @discount;
 
 RETURN 0
 
