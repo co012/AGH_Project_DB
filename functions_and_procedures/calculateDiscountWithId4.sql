@@ -17,8 +17,5 @@ SET @from = (SELECT YM FROM
 (SELECT dbo.GETYEARMOUNTH(OrderMadeDate) as YM,FinalPrice 
 FROM Orders WHERE dbo.GETYEARMOUNTH(OrderMadeDate)  < dbo.GETYEARMOUNTH(GETDATE()) AND CustomerId = @customerId) as T)
 
-
-
-
 RETURN 0;
 END
