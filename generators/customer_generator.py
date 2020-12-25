@@ -1,5 +1,7 @@
 import re
 import random
+import pyodbc
+
 def reduceData(filePath: str ,columsInReduced,reducedFilePath: str):
     reducedFile = open(reducedFilePath,"w+")
     file = open(filePath)
@@ -83,7 +85,7 @@ def generateCustomers(n,companiesNumber: int, dataFolderPath):
             name = maleNames.pop()
             lastName = maleLastNames.pop()
 
-        email = name.replace(" ","") + str(random.randint(0,10)) +random.choice(emailLastPart)
+        email = name.replace(" ","") + str(random.randint(0,10)) + '@' +random.choice(emailLastPart)
         phone = phones.pop()
 
         customers.append([name,lastName,email,phone,0,None])
@@ -99,15 +101,16 @@ def generateCustomers(n,companiesNumber: int, dataFolderPath):
     return customers
         
 
-    
-
-            
-
-        
 def generateCompanies(n, dataFolderPath):
-    companyNames = random.shuffle(csvToList(dataFolderPath + "company_names.csv"))
-    streets = random.shuffle(csvToList(dataFolderPath + "streets.csv"))
-    cities = random.shuffle(csvToList(dataFolderPath + "cities.csv"))
+    companyNames = unpackListOfLists(csvToList(dataFolderPath + "company_names.csv"),0)
+    getRideOfEndLine(companyNames)
+    random.shuffle(companyNames)
+    streets = unpackListOfLists(csvToList(dataFolderPath + "streets.csv"),0)
+    getRideOfEndLine(streets)
+    random.shuffle(streets)
+    cities = unpackListOfLists(csvToList(dataFolderPath + "cities.csv"),0)
+    getRideOfEndLine(cities)
+    random.shuffle(cities)
     NIPs = generateNIPs(n)
     
     companies = []
@@ -116,7 +119,7 @@ def generateCompanies(n, dataFolderPath):
         companyName = companyNames.pop()
         street = random.choice(streets)
         streetNumber = random.randint(1,100)
-        postCode = generateRandomNumbesrsSeq(1,2) + "-" + generateRandomNumbesrsSeq(1,3)
+        postCode = generateRandomNumbesrsSeq(1,2)[0] + "-" + generateRandomNumbesrsSeq(1,3)[0]
         citie = random.choice(cities)
         nip = NIPs.pop()
 
@@ -125,4 +128,13 @@ def generateCompanies(n, dataFolderPath):
     return companies
 
 
-print(generateCustomers(100,25,"generators/data/"))
+def populateDatabase(server:str, login:str, password:str, database:str):
+    cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';UID='+login+';PWD='+password)
+    cursor = cnxn.cursor()
+    cursor.execute("SELECT @@version;") 
+    row = cursor.fetchone() 
+    while row: 
+        print(row[0])
+        row = cursor.fetchone()
+
+populateDatabase("192.168.55.106","SA","ZAQ!2wsx","Project")
