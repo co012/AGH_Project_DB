@@ -118,7 +118,7 @@ def generateCompanies(n, dataFolderPath):
     for _ in range(n):
         companyName = companyNames.pop()
         street = random.choice(streets)
-        streetNumber = random.randint(1,100)
+        streetNumber = str(random.randint(1,100))
         postCode = generateRandomNumbesrsSeq(1,2)[0] + "-" + generateRandomNumbesrsSeq(1,3)[0]
         citie = random.choice(cities)
         nip = NIPs.pop()
@@ -128,13 +128,15 @@ def generateCompanies(n, dataFolderPath):
     return companies
 
 
-def populateDatabase(server:str, login:str, password:str, database:str):
+def populateDatabaseWithCustomersAndCompanies(server:str, login:str, password:str, database:str, dataFolderPath:str, customersNumber:int, companiesNumber:int):
     cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';UID='+login+';PWD='+password)
     cursor = cnxn.cursor()
-    cursor.execute("SELECT @@version;") 
-    row = cursor.fetchone() 
-    while row: 
-        print(row[0])
-        row = cursor.fetchone()
 
-populateDatabase("192.168.55.106","SA","ZAQ!2wsx","Project")
+    customers = generateCustomers(customersNumber,companiesNumber,dataFolderPath)
+    companies = generateCompanies(companiesNumber,dataFolderPath)
+
+    cursor.fast_executemany = True
+    cursor.executemany("INSERT INTO CompanyInfo(Name, Street, StreetNumber, PostCode, City, NIP) VALUES (?,?,?,?,?,?)",companies)
+    cursor.executemany("INSERT INTO Customers(ContactPersonFirstName,ContactPersonLastName,Email,Phone,RepresentingCompany,CompanyId) VALUES (?,?,?,?,?,?)",customers)
+    cursor.commit()
+

@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2020-12-21 11:20:30.893
+-- Last modification date: 2020-12-27 13:18:54.426
 
 -- tables
 -- Table: Branches
@@ -31,7 +31,7 @@ CREATE TABLE CompanyInfo (
     StreetNumber varchar(10)  NOT NULL,
     PostCode varchar(6)  NOT NULL,
     City varchar(255)  NOT NULL,
-    NIP char(10)  NOT NULL CHECK (NIP < 10000000000 AND NIP > 999999999),
+    NIP char(10)  NOT NULL,
     CONSTRAINT NIP UNIQUE (NIP),
     CONSTRAINT CompanyInfo_pk PRIMARY KEY  (CompanyId)
 );
@@ -39,12 +39,13 @@ CREATE TABLE CompanyInfo (
 -- Table: Customers
 CREATE TABLE Customers (
     CustomerId int  NOT NULL IDENTITY,
-    Name varchar(30)  NOT NULL,
+    ContactPersonFirstName varchar(30)  NOT NULL,
+    ContactPersonLastName varchar(30)  NOT NULL,
     Email varchar(320)  NOT NULL,
     Phone varchar(16)  NOT NULL,
-    IsACompany bit  NOT NULL,
+    RepresentingCompany bit  NOT NULL,
     CompanyId int  NULL,
-    CONSTRAINT CompanyNameAndIsACompany CHECK ((IsACompany = 1 AND NOT CompanyId = NULL) OR  (IsACompany = 0 AND CompanyId = NULL) ),
+    CONSTRAINT CompanyNameAndIsACompany CHECK ((RepresentingCompany = 1 AND NOT CompanyId = NULL) OR  (RepresentingCompany = 0 AND CompanyId = NULL) ),
     CONSTRAINT CustomerId PRIMARY KEY  (CustomerId)
 );
 
@@ -54,9 +55,9 @@ CREATE TABLE DiscountsTypes (
     Description text  NOT NULL,
     CurrentMinDiscount real  NOT NULL CHECK (CurrentMinDiscount <= 1 and 0 < CurrentMinDiscount),
     CurrentMaxDiscount real  NOT NULL CHECK (CurrentMaxDiscount <=1 and 0 < CurrentMaxDiscount),
-    MinPrice money  NOT NULL,
-    MinOrders int  NOT NULL,
-    Duration int  NOT NULL,
+    MinPrice money  NULL,
+    MinOrders int  NULL,
+    Duration int  NULL,
     CONSTRAINT DiscountsTypes_pk PRIMARY KEY  (DiscountTypeId)
 );
 
