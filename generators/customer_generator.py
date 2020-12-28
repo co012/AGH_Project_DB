@@ -1,6 +1,7 @@
 import re
 import random
 import pyodbc
+from .useful_functions import *
 
 def reduceData(filePath: str ,columsInReduced,reducedFilePath: str):
     reducedFile = open(reducedFilePath,"w+")
@@ -20,36 +21,14 @@ def reduceData(filePath: str ,columsInReduced,reducedFilePath: str):
         reducedFile.write(newLine[0:-1] + "\n")
 
 
-def csvToList(filePath):
-    file = open(filePath)
-    toReturn = []
-    for line in file:
-        toReturn.append(line.split(","))
-    return toReturn
-
-def generateRandomNumbesrsSeq(n,m):
-    numbers = ["0","1","2","3","4","5","6","7","8","9"]
-    seqes = []
-    while(len(seqes) < n):
-        seq = ''.join(random.choices(numbers,k=m))
-        if not seq in seqes:
-            seqes.append(seq)
-    
-    return seqes
-
 
 def generateNIPs(n):
-    return generateRandomNumbesrsSeq(n,10)
+    return generateRandomNumbersSeqs(n,10)
 
 def generataPhoneNumbers(n):
-    return generateRandomNumbesrsSeq(n,9)
+    return generateRandomNumbersSeqs(n,9)
 
-def unpackListOfLists(listOfLists : list , i: int):
-    toReturn = []
-    for l in listOfLists:
-        toReturn.append(l[i])
 
-    return toReturn
 
 def getRideOfEndLine(strings : list):
     for i in range(len(strings)):
@@ -119,7 +98,7 @@ def generateCompanies(n, dataFolderPath):
         companyName = companyNames.pop()
         street = random.choice(streets)
         streetNumber = str(random.randint(1,100))
-        postCode = generateRandomNumbesrsSeq(1,2)[0] + "-" + generateRandomNumbesrsSeq(1,3)[0]
+        postCode = generateRandomNumbersSeqs(1,2)[0] + "-" + generateRandomNumbersSeqs(1,3)[0]
         citie = random.choice(cities)
         nip = NIPs.pop()
 
@@ -128,9 +107,8 @@ def generateCompanies(n, dataFolderPath):
     return companies
 
 
-def populateDatabaseWithCustomersAndCompanies(server:str, login:str, password:str, database:str, dataFolderPath:str, customersNumber:int, companiesNumber:int):
-    cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';UID='+login+';PWD='+password)
-    cursor = cnxn.cursor()
+def populateDatabaseWithCustomersAndCompanies(cursor, dataFolderPath:str, customersNumber:int, companiesNumber:int):
+
 
     customers = generateCustomers(customersNumber,companiesNumber,dataFolderPath)
     companies = generateCompanies(companiesNumber,dataFolderPath)

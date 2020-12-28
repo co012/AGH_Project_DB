@@ -1,8 +1,11 @@
 from subprocess import run
 from generators.customer_generator import populateDatabaseWithCustomersAndCompanies
+from generators.branches_generator import populateDatabaseWithBranches
+from generators.employees_generator import populateDatabaseWithEployeesAndTheirPositions
 from os import listdir
+import pyodbc
 
-ip = "192.168.55.106"
+ip = "192.168.55.101"
 login = "SA"
 password = "ZAQ!2wsx"
 database = "Project"
@@ -26,4 +29,10 @@ def addFunctionsAndProceduresToDatabase(folderPath:str):
 clean()
 addFunctionsAndProceduresToDatabase("functions_and_procedures/")
 runF("i_guess_projek_create.sql")
-populateDatabaseWithCustomersAndCompanies("192.168.55.106","SA","ZAQ!2wsx","Project","generators/data/",500,50)
+cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+ip+';DATABASE='+database+';UID='+login+';PWD='+password)
+cursor = cnxn.cursor()
+dataFolderPath = "generators/data/"
+populateDatabaseWithCustomersAndCompanies(cursor,dataFolderPath,500,50)
+populateDatabaseWithBranches(cursor,dataFolderPath,10)
+populateDatabaseWithEployeesAndTheirPositions(cursor,dataFolderPath,50)
+

@@ -1,0 +1,3 @@
+from generators.employees_generator import populateDatabaseWithEployeesAndTheirPositions
+
+populateDatabaseWithEployeesAndTheirPositions(None,None,200)

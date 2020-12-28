@@ -1,12 +1,11 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2020-12-27 13:18:54.426
+-- Last modification date: 2020-12-28 14:24:25.356
 
 -- tables
 -- Table: Branches
 CREATE TABLE Branches (
     BranchId int  NOT NULL IDENTITY,
-    Name varchar(30)  NOT NULL,
-    Street varchar(255)  NULL,
+    Street varchar(255)  NOT NULL,
     StreetNumber varchar(10)  NOT NULL,
     Apartament varchar(10)  NULL,
     City varchar(30)  NOT NULL,
@@ -87,11 +86,10 @@ CREATE TABLE Employees (
     EmployeeId int  NOT NULL IDENTITY,
     PositionId int  NOT NULL,
     LastName varchar(30)  NOT NULL,
-    Firstname varchar(30)  NOT NULL,
+    FirstName varchar(30)  NOT NULL,
     BirthDate date  NOT NULL,
     HireDate date  NOT NULL,
     Phone varchar(16)  NOT NULL,
-    Picture image  NOT NULL,
     BranchId int  NOT NULL,
     CONSTRAINT Employees_pk PRIMARY KEY  (EmployeeId)
 );
@@ -100,7 +98,7 @@ CREATE TABLE Employees (
 CREATE TABLE IntermediateProducts (
     ProductId int  NOT NULL IDENTITY,
     ProductName varchar(30)  NOT NULL,
-    Notes text  NOT NULL,
+    Notes text  NULL,
     CONSTRAINT IntermediateProducts_pk PRIMARY KEY  (ProductId)
 );
 
@@ -119,8 +117,8 @@ CREATE TABLE MenuItems (
     UnitPrice money  NOT NULL CHECK (UnitPrice > 0),
     Description text  NOT NULL,
     Picture image  NOT NULL,
-    LastTimeAdded datetime  NOT NULL,
-    LastTimeRemoved datetime  NOT NULL,
+    LastTimeAdded date  NOT NULL,
+    LastTimeRemoved date  NOT NULL,
     CONSTRAINT MenuItems_pk PRIMARY KEY  (MenuItemId)
 );
 
@@ -184,7 +182,7 @@ CREATE INDEX Status on Orders (StatusId ASC)
 -- Table: Positions
 CREATE TABLE Positions (
     PositionId int  NOT NULL IDENTITY,
-    PositionName int  NOT NULL,
+    PositionName varchar(30)  NOT NULL,
     CONSTRAINT Positions_pk PRIMARY KEY  (PositionId)
 );
 
