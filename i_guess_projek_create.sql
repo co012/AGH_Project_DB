@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2020-12-28 14:24:25.356
+-- Last modification date: 2020-12-29 13:02:58.527
 
 -- tables
 -- Table: Branches
@@ -17,7 +17,7 @@ CREATE TABLE Branches (
 -- Table: Categories
 CREATE TABLE Categories (
     CategoryId int  NOT NULL IDENTITY,
-    CategoryName varchar(30)  NOT NULL,
+    CategoryName varchar(64)  NOT NULL,
     Description text  NOT NULL,
     CONSTRAINT Categories_pk PRIMARY KEY  (CategoryId)
 );
@@ -114,9 +114,9 @@ CREATE TABLE Menu (
 CREATE TABLE MenuItems (
     MenuItemId int  NOT NULL IDENTITY,
     CategoryId int  NOT NULL,
-    UnitPrice money  NOT NULL CHECK (UnitPrice > 0),
+    Name varchar(64)  NOT NULL,
     Description text  NOT NULL,
-    Picture image  NOT NULL,
+    UnitPrice money  NOT NULL,
     LastTimeAdded date  NOT NULL,
     LastTimeRemoved date  NOT NULL,
     CONSTRAINT MenuItems_pk PRIMARY KEY  (MenuItemId)
@@ -220,7 +220,8 @@ CREATE TABLE Tables (
     TableId int  NOT NULL IDENTITY,
     Chairs tinyint  NOT NULL,
     BranchId int  NOT NULL,
-    IsAvailable bit  NOT NULL,
+    UnavailableFrom date  NOT NULL,
+    UnavailableTo date  NOT NULL,
     CONSTRAINT Tables_pk PRIMARY KEY  (TableId)
 );
 
@@ -293,11 +294,6 @@ ALTER TABLE RecipesAndSuch ADD CONSTRAINT RecipesAndSuch_IntermediateProducts
     FOREIGN KEY (ProductId)
     REFERENCES IntermediateProducts (ProductId);
 
--- Reference: RecipesAndSuch_MenuItems (table: RecipesAndSuch)
-ALTER TABLE RecipesAndSuch ADD CONSTRAINT RecipesAndSuch_MenuItems
-    FOREIGN KEY (MenuItemId)
-    REFERENCES MenuItems (MenuItemId);
-
 -- Reference: ReservationsInfo_Orders (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
     FOREIGN KEY (OrderId)
@@ -307,11 +303,6 @@ ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Tables
     FOREIGN KEY (TableId)
     REFERENCES Tables (TableId);
-
--- Reference: Storage_Branches (table: Storage)
-ALTER TABLE Storage ADD CONSTRAINT Storage_Branches
-    FOREIGN KEY (BranchId)
-    REFERENCES Branches (BranchId);
 
 -- Reference: Storage_IntermediateProducts (table: Storage)
 ALTER TABLE Storage ADD CONSTRAINT Storage_IntermediateProducts

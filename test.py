@@ -1,3 +1,4 @@
-from generators.employees_generator import populateDatabaseWithEployeesAndTheirPositions
+from generators.menu_items_generator import generateMenuItems
+from generators.menu_items_generator import generateMenuItems
 
-populateDatabaseWithEployeesAndTheirPositions(None,None,200)
+print(generateMenuItems("generators/data/"))
