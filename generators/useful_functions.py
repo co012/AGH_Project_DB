@@ -41,3 +41,8 @@ def getRandomDate(fromYear,toYear):
     randomDate = stime + (etime - stime) * random.random()
     return time.strftime('%Y%m%d',time.localtime(randomDate))
 
+def getRandomDateTime(fromYear,toYear):
+    stime = time.mktime(time.strptime(str(fromYear),"%Y"))
+    etime = time.mktime(time.strptime(str(toYear),"%Y"))
+    randomDate = stime + (etime - stime) * random.random()
+    return time.strftime('%Y%m%d %H:%M:00',time.localtime(randomDate) )

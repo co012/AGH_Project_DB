@@ -44,7 +44,5 @@ def populateDatabaseWithEployeesAndTheirPositions(cursor, dataFolderPath:str, em
     employees = generateEmployees(dataFolderPath,employeesNumber,len(positions),unpackListOfLists(rows,0))
     cursor.fast_executemany = False
     cursor.executemany("INSERT INTO Positions(PositionName) VALUES (?)",positions)
-    cursor.commit()
     cursor.executemany("INSERT INTO Employees(PositionId,LastName,FirstName,BirthDate,HireDate,Phone,BranchId) VALUES (?,?,?,?,?,?,?)",employees)
-    cursor.commit()
     

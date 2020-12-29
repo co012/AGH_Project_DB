@@ -104,7 +104,7 @@ CREATE TABLE IntermediateProducts (
 
 -- Table: Menu
 CREATE TABLE Menu (
-    MenuPosition int  NOT NULL IDENTITY,
+    MenuPosition int  NOT NULL,
     MenuItemId int  NOT NULL,
     IsAvailable bit  NOT NULL,
     CONSTRAINT Menu_pk PRIMARY KEY  (MenuPosition)
@@ -124,7 +124,7 @@ CREATE TABLE MenuItems (
 
 -- Table: OrderDetails
 CREATE TABLE OrderDetails (
-    OrderId int  NOT NULL IDENTITY,
+    OrderId int  NOT NULL,
     MenuItemId int  NOT NULL,
     Quantity int  NOT NULL CHECK (Quantity > 0),
     CONSTRAINT OrderDetails_pk PRIMARY KEY  (OrderId,MenuItemId)

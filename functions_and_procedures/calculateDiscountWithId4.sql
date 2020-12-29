@@ -18,7 +18,7 @@ SET @nowYM = dbo.getYearMonth(GETDATE());
 SET @from = ( SELECT TOP 1 YM FROM
 (SELECT YM,Count(*) as OrdersMade, sum(FinalPrice) as TotalPrice FROM
 (SELECT dbo.getYearMonth(OrderMadeDate) as YM,FinalPrice 
-FROM Orders WHERE dbo.getYearMonth(OrderMadeDate)  < @nomYM AND CustomerId = @customerId AND NOT StatusId = 5 ) as T GROUP BY T.YM ORDER BY T.YM DESC) AS T2
+FROM Orders WHERE dbo.getYearMonth(OrderMadeDate)  < @nowYM AND CustomerId = @customerId AND NOT StatusId = 5 ) as T GROUP BY T.YM ORDER BY T.YM DESC) AS T2
 WHERE T2.OrdersMade < @minOrders OR T2.TotalPrice < @minPrice
 );
 

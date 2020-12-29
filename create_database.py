@@ -4,6 +4,8 @@ from generators.branches_generator import populateDatabaseWithBranches
 from generators.employees_generator import populateDatabaseWithEployeesAndTheirPositions
 from generators.categories_generator import populateDatabaseWithCategories
 from generators.menu_items_generator import populateDatabaseWithMenuItems
+from generators.tables_generator import populateDatabaseWithTables
+from generators.orders_generator_simple import populateDatabaseWithOrders
 from os import listdir
 import pyodbc
 
@@ -39,4 +41,5 @@ populateDatabaseWithBranches(cursor,dataFolderPath,10)
 populateDatabaseWithEployeesAndTheirPositions(cursor,dataFolderPath,50)
 populateDatabaseWithCategories(cursor,dataFolderPath)
 populateDatabaseWithMenuItems(cursor,dataFolderPath)
-
+populateDatabaseWithTables(cursor, 100)
+populateDatabaseWithOrders(cursor,dataFolderPath,10)
