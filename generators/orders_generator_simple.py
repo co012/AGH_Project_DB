@@ -21,16 +21,24 @@ def namesGenerator(dataFolderPath:str):
 
 
 
-def generateReservation(nameG,year,tableIds:list):
-    dates =  [ getRandomDateTime(year,year+1), getRandomDateTime(year,year)]
-    return [random.choice(tableIds), next(nameG), min(dates),max(dates)]
+def generateReservations(nameG,year,tableIds:list):
     
+    tables = random.sample(tableIds, k = floor(abs(random.gauss(0,1))))
+    toReturn = []
+    for t in tables:
+        dates =  [ getRandomDateTime(year,year+1), getRandomDateTime(year,year)]
+        toReturn.append([t])
+        toReturn[-1].append(next(nameG))
+        toReturn[-1].append(min(dates))
+        toReturn[-1].append(max(dates))
+    
+    return toReturn
     
 def generateOrderDetail(menuItemIdsAndTheirPrices):
     price = 0
     menuItemsIdsAndQuantity = [] 
-    for i in range(random.randint(1,10)):
-        c = random.choice(menuItemIdsAndTheirPrices)
+    menuItemsIaQ = random.sample(menuItemIdsAndTheirPrices,k = random.randint(1,10))
+    for c in menuItemsIaQ:
         q = random.randint(1,10)
         menuItemsIdsAndQuantity.append([c[0],q])
         price += c[1]*q
@@ -58,7 +66,7 @@ def generateCompleteOrCanceledOrderPack(nameG, branchIds:list,tableData:list, em
     orderServedDate = dates[3]
 
     tables = unpackListOfLists(filter(lambda x: x[1] == branch,tableData),0)
-    reservations = [generateReservation(nameG,year,tables) for _ in range(floor(abs(random.gauss(0,1))))]
+    reservations = generateReservations(nameG,year,tables)
     withReserwation = len(reservations) > 0
 
 

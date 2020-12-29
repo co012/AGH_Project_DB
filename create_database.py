@@ -37,9 +37,9 @@ cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+ip+';DATA
 cursor = cnxn.cursor()
 dataFolderPath = "generators/data/"
 populateDatabaseWithCustomersAndCompanies(cursor,dataFolderPath,500,50)
-populateDatabaseWithBranches(cursor,dataFolderPath,10)
+populateDatabaseWithBranches(cursor,dataFolderPath,5)
 populateDatabaseWithEployeesAndTheirPositions(cursor,dataFolderPath,50)
 populateDatabaseWithCategories(cursor,dataFolderPath)
 populateDatabaseWithMenuItems(cursor,dataFolderPath)
 populateDatabaseWithTables(cursor, 100)
-populateDatabaseWithOrders(cursor,dataFolderPath,10)
+populateDatabaseWithOrders(cursor,dataFolderPath,1000)
