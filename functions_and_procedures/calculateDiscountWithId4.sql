@@ -15,14 +15,24 @@ SET @maxDiscount = (SELECT CurrentMaxDiscount FROM DiscountsTypes WHERE Discount
 SET @minPrice = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
 SET @minOrders = (SELECT MinOrders FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
 SET @nowYM = dbo.getYearMonth(GETDATE());
-SET @from = ( SELECT TOP 1 YM FROM
-(SELECT YM,Count(*) as OrdersMade, sum(FinalPrice) as TotalPrice FROM
-(SELECT dbo.getYearMonth(OrderMadeDate) as YM,FinalPrice 
-FROM Orders WHERE dbo.getYearMonth(OrderMadeDate)  < @nowYM AND CustomerId = @customerId AND NOT StatusId = 5 ) as T GROUP BY T.YM ORDER BY T.YM DESC) AS T2
-WHERE T2.OrdersMade < @minOrders OR T2.TotalPrice < @minPrice
-);
 
-IF @from = NULL SET @from = 0;
 
-RETURN (SELECT COUNT(DISTINCT dbo.getYearMonth(OrderMadeDate)) FROM Orders WHERE dbo.getYearMonh(OrderMadeDate) > @from);
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 RETURN 0;
+
+DECLARE @maxStreak INT = CEILING( @maxDiscount / @minDiscount );
+DECLARE @streak INT = 0;
+DECLARE @YMIterator INT = dbo.getPreviousYearMonth(@nowYM);
+
+WHILE @streak < @maxStreak
+BEGIN
+    DECLARE @TotalPrice MONEY, @OrdersMade INT;
+    SELECT @TotalPrice =  SUM(FinalPrice), @OrdersMade = COUNT(*) FROM Orders WHERE CustomerId = @customerId AND dbo.getYearMonth(OrderMadeDate) = @YMIterator AND NOT StatusId = 5;
+    IF ISNULL(@TotalPrice,0) < @minPrice OR @OrdersMade < @minOrders BREAK;
+    SET @streak = @streak + 1;
+    SET @YMIterator = dbo.getPreviousYearMonth(@YMIterator);
+END
+
+
+IF @maxDiscount < @minDiscount * @streak RETURN @maxDiscount;
+RETURN @minDiscount * @streak;
 END

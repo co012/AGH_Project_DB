@@ -1,2 +1,2 @@
-Msg 102, Level 15, State 1, Server oldi, Line 1
-Incorrect syntax near 'DROP Project'.
+INSERT INTO Orders (BranchId,EmployeeId,CustomerId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderServeDate,OrderApprovedDate,OrderServedDate) 
+VALUES (1,1,50,4,0,'$10000000',NULL,0,'$10000000',1,"2020-07-24 12:23:00","2020-07-24 12:23:00","2020-07-24 12:23:00","2020-07-24 12:23:00")

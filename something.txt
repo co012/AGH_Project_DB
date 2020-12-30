@@ -1,0 +1,3 @@
+SELECT dbo.calculateDiscountWithId5(CustomerId),CustomerId from Customers
+
+SELECT SUM(FinalPrice),dbo.getYearQuater(OrderMadeDate) FROM Orders where CustomerId = 47 Group By dbo.getYearQuater(OrderMadeDate)

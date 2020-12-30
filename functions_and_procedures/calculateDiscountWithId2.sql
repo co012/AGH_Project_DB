@@ -10,6 +10,8 @@ SET @minVal = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeI
 SET @discount = (SELECT CurrentMinDiscount From DiscountsTypes WHERE DiscountTypeId = @typeId);
 SET @duration = (SELECT Duration From DiscountsTypes WHERE DiscountTypeId = @typeId);
 
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @CustomerId) = 1 RETURN 0;
+
 IF (SELECT COUNT(*) FROM Orders WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId) > 0
 BEGIN
 	DECLARE @discountDate DATETIME = 
@@ -18,8 +20,7 @@ BEGIN
 	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
 	ELSE RETURN 0;
 END
-ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId AND NOT StatusId = 5) > @minVal RETURN @discount;
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) > @minVal RETURN @discount;
 
 RETURN 0
-
 END;

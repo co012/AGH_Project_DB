@@ -57,7 +57,7 @@ def generateCompleteOrCanceledOrderPack(nameG, branchIds:list,tableData:list, em
     finalPrice = priceWithoutDiscout
     paid = status == 4
 
-    year = random.randint(2010,2020)
+    year = random.randint(2017,2020)
     dates = [getRandomDateTime(year,year+1) for _ in range(4)]
     dates.sort()
     orderMadeDate = dates[0]
@@ -88,6 +88,7 @@ def populateDatabaseWithOrders(cursor, dataFolderPath:str,ordersNumber:int):
     customerIds = unpackListOfLists(cursor.execute("SELECT CustomerId FROM Customers").fetchall(),0)
     employeeIdsAndBranches = cursor.execute("SELECT EmployeeId,BranchId FROM Employees").fetchall()
     branchIds = unpackListOfLists(cursor.execute("SELECT BranchId FROM Branches").fetchall(),0)
+    cursor.fast_executemany = False
 
     for _ in range(ordersNumber):
         orderPack = generateCompleteOrCanceledOrderPack(nameGen,branchIds,tables,employeeIdsAndBranches,customerIds,dishesAndTheirPrices)
@@ -97,9 +98,10 @@ def populateDatabaseWithOrders(cursor, dataFolderPath:str,ordersNumber:int):
         OUTPUT INSERTED.OrderId
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) """,orderPack[1])
         orderId = cursor.fetchval()
-
         for orderDetail in orderPack[0]:
             cursor.execute("INSERT INTO OrderDetails VALUES(?,?,?)",orderId,orderDetail[0],orderDetail[1])
 
         for reservation in orderPack[2]:
             cursor.execute("INSERT INTO ReservationsInfo VALUES(?,?,?,?,?)",orderId,*reservation)
+
+    cursor.commit()

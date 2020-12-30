@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2020-12-29 13:02:58.527
+-- Last modification date: 2020-12-30 16:25:22.454
 
 -- tables
 -- Table: Branches
@@ -66,7 +66,7 @@ Po realizacji kolejnych Z1 zamówień za co najmniej określoną kwotę K1 każd
 
 INSERT INTO DiscountsTypes(Description, CurrentMinDiscount, CurrentMaxDiscount, MinPrice,MinOrders,Duration)
 VALUES('Po realizacji zamówień za łączną kwotę K2: jednorazowa zniżka R2% na zamówienia
-złożone przez D1 dni, począwszy od dnia przyznania zniżk',0.03,0.03,1000,0,7)
+złożone przez D1 dni, począwszy od dnia przyznania zniżk',0.05,0.05,1000,0,7)
 
 INSERT INTO DiscountsTypes(Description, CurrentMinDiscount, CurrentMaxDiscount, MinPrice,MinOrders,Duration)
 VALUES('Po realizacji zamówień za łączną kwotę MinPrice: jednorazowa zniżka CurrentMinDiscount
@@ -75,11 +75,11 @@ na zamówienia złożone przez Duration dni, począwszy od dnia przyznania zniż
 INSERT INTO DiscountsTypes(Description, CurrentMinDiscount, CurrentMaxDiscount, MinPrice,MinOrders,Duration)
 VALUES('Za każdy kolejny miesiąc, w którym dokonano co najmniej FZ zamówień za łączną kwotę co
 najmniej FK1: rabat FR1% (np. FR1 = 0,1%). W przypadku braku ciągłości w zamówieniach
-rabat zeruje się. Łączny, maksymalny rabat, to FM%',0.001,0.04,5,500,31)
+rabat zeruje się. Łączny, maksymalny rabat, to FM%',0.001,0.04,500,5,31)
 
 INSERT INTO DiscountsTypes(Description, CurrentMinDiscount, CurrentMaxDiscount, MinPrice,MinOrders,Duration)
 VALUES('Za każdy kolejny kwartał, w którym dokonano zamówień za łączną kwotę FK2: rabat
-kwotowy równy FR2% z łącznej kwoty, z którą zrealizowano zamówienie.',0.05,0.05,0,10000,122);
+kwotowy równy FR2% z łącznej kwoty, z którą zrealizowano zamówienie.',0.05,0.05,10000,0,122);
 
 -- Table: Employees
 CREATE TABLE Employees (
