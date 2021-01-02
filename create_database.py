@@ -23,7 +23,7 @@ def runF(filePath: str):
 def clean():
     run(['sqlcmd', '-S' + ip, '-U' + login, '-P' + password,'-Q '+ "DROP DATABASE " + database + " \n GO \n CREATE DATABASE " + database + " COLLATE Polish_CI_AS"])
 
-def addFunctionsAndProceduresToDatabase(folderPath:str):
+def addElementsFromFolderToDatabase(folderPath:str):
     filesNames = listdir(folderPath)
     for fileName in filesNames:
         runF(folderPath + fileName)
@@ -31,7 +31,9 @@ def addFunctionsAndProceduresToDatabase(folderPath:str):
 
 
 clean()
-addFunctionsAndProceduresToDatabase("functions_and_procedures/")
+addElementsFromFolderToDatabase("functions_and_procedures/")
+addElementsFromFolderToDatabase("views/")
+#addElementsFromFolderToDatabase("functions_and_procedures/")
 runF("i_guess_projek_create.sql")
 cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+ip+';DATABASE='+database+';UID='+login+';PWD='+password)
 cursor = cnxn.cursor()
