@@ -9,7 +9,7 @@ from generators.orders_generator_simple import populateDatabaseWithOrders
 from os import listdir
 import pyodbc
 
-ip = "192.168.55.104"
+ip = "192.168.55.101"
 login = "SA"
 password = "ZAQ!2wsx"
 database = "Project"
@@ -31,10 +31,10 @@ def addElementsFromFolderToDatabase(folderPath:str):
 
 
 clean()
+runF("i_guess_projek_create.sql")
+runF("custom_types.sql")
 addElementsFromFolderToDatabase("functions_and_procedures/")
 addElementsFromFolderToDatabase("views/")
-#addElementsFromFolderToDatabase("functions_and_procedures/")
-runF("i_guess_projek_create.sql")
 cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+ip+';DATABASE='+database+';UID='+login+';PWD='+password)
 cursor = cnxn.cursor()
 dataFolderPath = "generators/data/"
@@ -42,7 +42,7 @@ print("PopulateWithCustomersAndCompanies: START")
 populateDatabaseWithCustomersAndCompanies(cursor,dataFolderPath,50,10)
 print("PopulateWithCustomersAndCompanies: END")
 print("PopulateWithBranches: START")
-populateDatabaseWithBranches(cursor,dataFolderPath,5)
+populateDatabaseWithBranches(cursor,dataFolderPath,2)
 print("PopulateWithBranches: END")
 print("PopulateWithEmployeesAndTheirPositions: START")
 populateDatabaseWithEployeesAndTheirPositions(cursor,dataFolderPath,50)
@@ -57,7 +57,7 @@ print("PopulateWithTables: START")
 populateDatabaseWithTables(cursor, 100)
 print("PopulateWithTables: END")
 print("PopulateWithOrders: START")
-populateDatabaseWithOrders(cursor,dataFolderPath,1000)
+populateDatabaseWithOrders(cursor,dataFolderPath,10000)
 print("PopulateWithOrders: END")
 
 
