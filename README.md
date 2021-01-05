@@ -8,5 +8,8 @@ generator : python
 [Views](https://docs.google.com/document/d/1Tm1gSc8CTegt6xijaSnBYqJ8XH_Aix2Ks6MEcc9uyw8/edit?usp=sharing)  
 ## TODO  
 Add NOT StatusId = 5 to functions  
-Fix Problem With MenuItems - OrderDetails Relationship
+Fix Problem With MenuItems - OrderDetails Relationship  
+Write triggers  
+Make order generation better  
+Permissions  
 
