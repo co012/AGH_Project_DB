@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2021-01-11 10:44:30.937
+-- Last modification date: 2021-01-11 12:50:51.906
 
 -- tables
 -- Table: Branches
@@ -193,11 +193,11 @@ CREATE TABLE Tables (
 CREATE INDEX Branch on Tables (BranchId ASC)
 ;
 
--- Table: UnavalibleMenuItems
-CREATE TABLE UnavalibleMenuItems (
+-- Table: UnavailableMenuItems
+CREATE TABLE UnavailableMenuItems (
     BranchId int  NOT NULL,
     MenuItemId int  NOT NULL,
-    CONSTRAINT UnavalibleMenuItems_pk PRIMARY KEY  (BranchId,MenuItemId)
+    CONSTRAINT UnavailableMenuItems_pk PRIMARY KEY  (BranchId,MenuItemId)
 );
 
 -- foreign keys
@@ -272,13 +272,13 @@ ALTER TABLE Tables ADD CONSTRAINT Tables_Branches
     FOREIGN KEY (BranchId)
     REFERENCES Branches (BranchId);
 
--- Reference: UnavalibleMenuItems_Branches (table: UnavalibleMenuItems)
-ALTER TABLE UnavalibleMenuItems ADD CONSTRAINT UnavalibleMenuItems_Branches
+-- Reference: UnavalibleMenuItems_Branches (table: UnavailableMenuItems)
+ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_Branches
     FOREIGN KEY (BranchId)
     REFERENCES Branches (BranchId);
 
--- Reference: UnavalibleMenuItems_MenuItems (table: UnavalibleMenuItems)
-ALTER TABLE UnavalibleMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
+-- Reference: UnavalibleMenuItems_MenuItems (table: UnavailableMenuItems)
+ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
     FOREIGN KEY (MenuItemId)
     REFERENCES MenuItems (MenuItemId)
     ON DELETE  CASCADE 

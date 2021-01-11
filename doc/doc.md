@@ -68,7 +68,7 @@ CREATE TABLE CompanyInfo (
 ```
 
 ### Customers
-Przechowuje informacje o klientach.  
+Przechowuje informacje o klientach. Na tabele narzucony jest warunek by RepresentingCompany = (NOT CompanyId = NULL)  
 
 **CustomerId** - Identyfikator klienta  
 **ContactPersonFirstName** - Imię osoby kontaktowej, w przypadku klientów indywidualnych jest to imię klienta  
@@ -76,9 +76,7 @@ Przechowuje informacje o klientach.
 **Email** - E-mali klienta  
 **Phone** - Telefon kontaktowy  
 **RepresentingCompany** - Flaga informująca czy klient jest indywidualny ( = 0) czy raczej reprezentuje firmę ( = 1)  
-**CompanyId** - Identyfikator firmy, może przyjmować wartość NULL  
-
-Na tabele narzucony jest warunek by RepresentingCompany = (NOT CompanyId = NULL)  
+**CompanyId** - Identyfikator firmy, może przyjmować wartość NULL    
 
 ```SQL
 CREATE TABLE Customers (
@@ -169,7 +167,157 @@ CREATE TABLE MenuItems (
 );
 ```
 
+### OrderDetails
+Tabela przechowuje informacje o potrawach w danym zamówieniu.  
 
+**OrderId** - Identyfikator zamówienia  
+**MenuItemId** - Identyfikator potrawy  
+**Quantity** - Ilość danej potrawy w zamówieniu  
+
+```SQL
+CREATE TABLE OrderDetails (
+    OrderId int  NOT NULL,
+    MenuItemId int  NOT NULL,
+    Quantity int  NOT NULL CHECK (Quantity > 0),
+    CONSTRAINT OrderDetails_pk PRIMARY KEY  (OrderId,MenuItemId)
+);
+```
+
+### OrderStatuses
+Tabela przechowuje informacje o możliwych statusach zamówienia.  
+
+**StatusId** - Identyfikator statusu  
+**StatusName** - Nazwa statusu  
+**Description** - Opis co dany status oznacza  
+
+```SQL
+CREATE TABLE OrderStatuses (
+    StatusId int  NOT NULL IDENTITY,
+    StatusName varchar(30)  NOT NULL,
+    Description text  NULL,
+    CONSTRAINT OrderStatuses_pk PRIMARY KEY  (StatusId)
+);
+```
+
+### Orders
+Przechowuje Informacje o zamówieniu. W zależności od statusu zamówienia na tabele narzucone są różne warunki.  
+
+**OrderId** - Identyfikator zamówienia  
+**BranchId** - Identyfikator oddziału w którym realizowane jest zamówienie  
+**EmployeeId** - Identyfikator pracownika przyjmującego zamówienie  
+**CustomerId** - Identyfikator klienta składającego zamówienie  
+**StatusId** - Identyfikator statusu zamówienia  
+**WithReservation** - Flaga informująca czy z zamówieniem skojarzona jest rezerwacja (=1)  
+**PriceWithoutDiscount** - Cena bez rabatu  
+**DiscountTypeId** - Identyfikator rabatu  
+**Discount** - Wartość rabatu  
+**FinalPrice** - cena z rabatem  
+**Paid** - Flaga informująca czy zamówienie zostało opłacone  
+**OrderMadeDate** - Czas złożenia zamówienia  
+**OrderServeDate** - Czas w którym zamówienie powinno być odebrane  
+**OrderApprovedDate** - Czas zatwierdzenia zamówienia przez pracownika  
+**OrderServedDate** - Czas odebrania zamówienia  
+
+Tabela posiada index na StatusId  
+
+```SQL
+CREATE TABLE Orders (
+    OrderId int  NOT NULL IDENTITY,
+    BranchId int  NOT NULL,
+    EmployeeId int  NULL,
+    CustomerId int  NULL,
+    StatusId int  NOT NULL,
+    WithReservation bit  NOT NULL DEFAULT 0,
+    PriceWithoutDiscount money  NOT NULL,
+    DiscountTypeId int  NULL,
+    Discount real  NOT NULL DEFAULT 0 CHECK (Discount <= 1 and Discount >= 0),
+    FinalPrice money  NOT NULL,
+    Paid bit  NOT NULL,
+    OrderMadeDate datetime  NOT NULL,
+    OrderServeDate datetime  NOT NULL,
+    OrderApprovedDate datetime  NULL,
+    OrderServedDate datetime  NULL,
+    CONSTRAINT checkForStatusInter CHECK ((StatusId = 1 AND NOT CustomerId = NULL) OR (StatusId = 2 AND NOT EmployeeId = NULL AND NOT OrderApprovedDate = NULL) OR (StatusId = 3 AND NOT OrderServedDate = NULL) OR (StatusId > 3)),
+    CONSTRAINT Orders_pk PRIMARY KEY  (OrderId)
+);
+
+CREATE INDEX Status on Orders (StatusId ASC);
+```
+
+### Positions
+Przechowuje dane o tytułach zawodowych.  
+
+**PositionId** - Identyfikator tytułu  
+**PositionName** - Nazwa tytułu  
+
+
+```SQL
+CREATE TABLE Positions (
+    PositionId int  NOT NULL IDENTITY,
+    PositionName varchar(30)  NOT NULL,
+    CONSTRAINT Positions_pk PRIMARY KEY  (PositionId)
+);
+```
+
+### ReservationsInfo
+Przechowuje dane o rezerwacjach. Narzucono warunek by czas rezerwacji był większy od 0.  
+
+**OrderId** - Identyfikator zamówienia  
+**TableId** - Identyfikator stolika  
+**ReservedFor** - Dla kogo zarezerwowano stolik  
+**ReservedFrom** - Czas rozpoczęcia rezerwacji  
+**ReservedTo** - Czas zakończenia rezerwacji  
+
+```SQL
+CREATE TABLE ReservationsInfo (
+    OrderId int  NOT NULL,
+    TableId int  NOT NULL,
+    ReservedFor varchar(255)  NOT NULL,
+    ReservedFrom datetime  NOT NULL,
+    ReservedTo datetime  NOT NULL,
+    CONSTRAINT ReservationTimeMustBePositive CHECK ((ReservedTo - ReservedFrom) > 0),
+    CONSTRAINT ReservationsInfo_pk PRIMARY KEY  (OrderId,TableId)
+);
+```
+
+### Tables
+Tabela przechowuje dane o stolikach.  
+
+**TableId** - Identyfikator stolika  
+**Chairs** - Liczba krzeseł przy stoliku  
+**BranchId** - Identyfikator oddziału w którym znajduje się stolik  
+**UnavailableFrom** - Data startu niedostępności stolika  
+**UnavailableTo** - Data końca niedostępności stolika  
+
+Tabela posiada index na kolumnie BranchId
+
+```SQL
+CREATE TABLE Tables (
+    TableId int  NOT NULL IDENTITY,
+    Chairs tinyint  NOT NULL,
+    BranchId int  NOT NULL,
+    UnavailableFrom date  NOT NULL,
+    UnavailableTo date  NOT NULL,
+    CONSTRAINT Tables_pk PRIMARY KEY  (TableId)
+);
+
+CREATE INDEX Branch on Tables (BranchId ASC)
+;
+```
+
+### UnavailableMenuItems
+Przechowuje informacje o wyczerpaniu danej pozycji z menu.  
+
+**BranchId** - Identyfikator oddziału w którym wyczerpano danie  
+**MenuItemId** - Identyfikator dania  
+
+```SQL
+CREATE TABLE UnavailableMenuItems (
+    BranchId int  NOT NULL,
+    MenuItemId int  NOT NULL,
+    CONSTRAINT UnavailableMenuItems_pk PRIMARY KEY  (BranchId,MenuItemId)
+);
+```
 
 
 
