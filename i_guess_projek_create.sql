@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2020-12-30 16:25:22.454
+-- Last modification date: 2021-01-11 10:44:30.937
 
 -- tables
 -- Table: Branches
@@ -94,22 +94,6 @@ CREATE TABLE Employees (
     CONSTRAINT Employees_pk PRIMARY KEY  (EmployeeId)
 );
 
--- Table: IntermediateProducts
-CREATE TABLE IntermediateProducts (
-    ProductId int  NOT NULL IDENTITY,
-    ProductName varchar(30)  NOT NULL,
-    Notes text  NULL,
-    CONSTRAINT IntermediateProducts_pk PRIMARY KEY  (ProductId)
-);
-
--- Table: Menu
-CREATE TABLE Menu (
-    MenuPosition int  NOT NULL,
-    MenuItemId int  NOT NULL,
-    IsAvailable bit  NOT NULL,
-    CONSTRAINT Menu_pk PRIMARY KEY  (MenuPosition)
-);
-
 -- Table: MenuItems
 CREATE TABLE MenuItems (
     MenuItemId int  NOT NULL IDENTITY,
@@ -171,7 +155,6 @@ CREATE TABLE Orders (
     OrderServeDate datetime  NOT NULL,
     OrderApprovedDate datetime  NULL,
     OrderServedDate datetime  NULL,
-    InvoiceTaken bit  NOT NULL DEFAULT 0,
     CONSTRAINT checkForStatusInter CHECK ((StatusId = 1 AND NOT CustomerId = NULL) OR (StatusId = 2 AND NOT EmployeeId = NULL AND NOT OrderApprovedDate = NULL) OR (StatusId = 3 AND NOT OrderServedDate = NULL) OR (StatusId > 3)),
     CONSTRAINT Orders_pk PRIMARY KEY  (OrderId)
 );
@@ -186,14 +169,6 @@ CREATE TABLE Positions (
     CONSTRAINT Positions_pk PRIMARY KEY  (PositionId)
 );
 
--- Table: RecipesAndSuch
-CREATE TABLE RecipesAndSuch (
-    MenuItemId int  NOT NULL,
-    ProductId int  NOT NULL,
-    QuantityNeeded real  NOT NULL CHECK (QuantityNeeded > 0),
-    CONSTRAINT RecipesAndSuch_pk PRIMARY KEY  (MenuItemId,ProductId)
-);
-
 -- Table: ReservationsInfo
 CREATE TABLE ReservationsInfo (
     OrderId int  NOT NULL,
@@ -203,16 +178,6 @@ CREATE TABLE ReservationsInfo (
     ReservedTo datetime  NOT NULL,
     CONSTRAINT ReservationTimeMustBePositive CHECK ((ReservedTo - ReservedFrom) > 0),
     CONSTRAINT ReservationsInfo_pk PRIMARY KEY  (OrderId,TableId)
-);
-
--- Table: Storage
-CREATE TABLE Storage (
-    BranchId int  NOT NULL,
-    ProductId int  NOT NULL,
-    Quantity real  NOT NULL CHECK (Quantity >=0),
-    QuantityUnit varchar(30)  NOT NULL,
-    MinQuantity real  NOT NULL,
-    CONSTRAINT Storage_pk PRIMARY KEY  (ProductId,BranchId)
 );
 
 -- Table: Tables
@@ -228,11 +193,19 @@ CREATE TABLE Tables (
 CREATE INDEX Branch on Tables (BranchId ASC)
 ;
 
+-- Table: UnavalibleMenuItems
+CREATE TABLE UnavalibleMenuItems (
+    BranchId int  NOT NULL,
+    MenuItemId int  NOT NULL,
+    CONSTRAINT UnavalibleMenuItems_pk PRIMARY KEY  (BranchId,MenuItemId)
+);
+
 -- foreign keys
 -- Reference: Customers_CompanyInfo (table: Customers)
 ALTER TABLE Customers ADD CONSTRAINT Customers_CompanyInfo
     FOREIGN KEY (CompanyId)
-    REFERENCES CompanyInfo (CompanyId);
+    REFERENCES CompanyInfo (CompanyId)
+    ON DELETE  CASCADE;
 
 -- Reference: Employees_Branches (table: Employees)
 ALTER TABLE Employees ADD CONSTRAINT Employees_Branches
@@ -248,11 +221,6 @@ ALTER TABLE Employees ADD CONSTRAINT Employees_Positions
 ALTER TABLE MenuItems ADD CONSTRAINT MenuItems_Categories
     FOREIGN KEY (CategoryId)
     REFERENCES Categories (CategoryId);
-
--- Reference: Menu_MenuItems (table: Menu)
-ALTER TABLE Menu ADD CONSTRAINT Menu_MenuItems
-    FOREIGN KEY (MenuItemId)
-    REFERENCES MenuItems (MenuItemId);
 
 -- Reference: OrderDetails_MenuItems (table: OrderDetails)
 ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_MenuItems
@@ -289,11 +257,6 @@ ALTER TABLE Orders ADD CONSTRAINT Orders_OrderStatuses
     FOREIGN KEY (StatusId)
     REFERENCES OrderStatuses (StatusId);
 
--- Reference: RecipesAndSuch_IntermediateProducts (table: RecipesAndSuch)
-ALTER TABLE RecipesAndSuch ADD CONSTRAINT RecipesAndSuch_IntermediateProducts
-    FOREIGN KEY (ProductId)
-    REFERENCES IntermediateProducts (ProductId);
-
 -- Reference: ReservationsInfo_Orders (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
     FOREIGN KEY (OrderId)
@@ -304,15 +267,22 @@ ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Tables
     FOREIGN KEY (TableId)
     REFERENCES Tables (TableId);
 
--- Reference: Storage_IntermediateProducts (table: Storage)
-ALTER TABLE Storage ADD CONSTRAINT Storage_IntermediateProducts
-    FOREIGN KEY (ProductId)
-    REFERENCES IntermediateProducts (ProductId);
-
 -- Reference: Tables_Branches (table: Tables)
 ALTER TABLE Tables ADD CONSTRAINT Tables_Branches
     FOREIGN KEY (BranchId)
     REFERENCES Branches (BranchId);
+
+-- Reference: UnavalibleMenuItems_Branches (table: UnavalibleMenuItems)
+ALTER TABLE UnavalibleMenuItems ADD CONSTRAINT UnavalibleMenuItems_Branches
+    FOREIGN KEY (BranchId)
+    REFERENCES Branches (BranchId);
+
+-- Reference: UnavalibleMenuItems_MenuItems (table: UnavalibleMenuItems)
+ALTER TABLE UnavalibleMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
+    FOREIGN KEY (MenuItemId)
+    REFERENCES MenuItems (MenuItemId)
+    ON DELETE  CASCADE 
+    ON UPDATE  CASCADE;
 
 -- End of file.
 
