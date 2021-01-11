@@ -13,7 +13,7 @@ Tabela przechowuje dane o oddziałach firmy.
 **PostCode** - Kod pocztowy  
 **Area** - Powierzchnia lokalu  
 
-```SQL
+```TSQL
 CREATE TABLE Branches (
     BranchId int  NOT NULL IDENTITY,
     Street varchar(255)  NOT NULL,
@@ -33,7 +33,7 @@ Tabela przechowuje informacje o danych kategoriach dań.
 **CategoryName** - Nazwa kategorii  
 **Description** - Opis kategorii  
 
-```SQL
+```TSQL
 CREATE TABLE Categories (
     CategoryId int  NOT NULL IDENTITY,
     CategoryName varchar(64)  NOT NULL,
@@ -53,7 +53,7 @@ Przechowuje informacje o firmie klienta w tym dane potrzebne do faktury.
 **City** - Miasto  
 **NIP** - NIP firmy (narzucony jest na to pole warunek UNIQUE)  
 
-```SQL
+```TSQL
 CREATE TABLE CompanyInfo (
     CompanyId int  NOT NULL IDENTITY,
     Name varchar(255)  NOT NULL,
@@ -78,7 +78,7 @@ Przechowuje informacje o klientach. Na tabele narzucony jest warunek by Represen
 **RepresentingCompany** - Flaga informująca czy klient jest indywidualny ( = 0) czy raczej reprezentuje firmę ( = 1)  
 **CompanyId** - Identyfikator firmy, może przyjmować wartość NULL    
 
-```SQL
+```TSQL
 CREATE TABLE Customers (
     CustomerId int  NOT NULL IDENTITY,
     ContactPersonFirstName varchar(30)  NOT NULL,
@@ -103,7 +103,7 @@ Przechowuje informacje o dostępnych rabatach, z tabelą mocno związane są fun
 **MinOrders** - Minimalna liczba zamówień, szczegóły opisane są w Description  
 **Duration** - Czas trwania,  szczegóły opisane są w Description  
 
-```SQL
+```TSQL
 CREATE TABLE DiscountsTypes (
     DiscountTypeId int  NOT NULL IDENTITY,
     Description text  NOT NULL,
@@ -129,7 +129,7 @@ Tabel przechowuje informacje o pracownikach.
 **Phone** - Telefon kontaktowy  
 **BranchId** - Identyfikator oddziału, który zatrudnia pracownika  
 
-```SQL
+```TSQL
 CREATE TABLE Employees (
     EmployeeId int  NOT NULL IDENTITY,
     PositionId int  NOT NULL,
@@ -154,7 +154,7 @@ Tabela przechowuje dane o możliwych potrawach/napojach do umieszczenia w menu.
 **LastTimeAdded** - Data ostatniego dodania potrawy do menu  
 **LastTimeRemoved** - Data ostatniego ściągnięcia potrawy z menu  
 
-```SQL
+```TSQL
 CREATE TABLE MenuItems (
     MenuItemId int  NOT NULL IDENTITY,
     CategoryId int  NOT NULL,
@@ -174,7 +174,7 @@ Tabela przechowuje informacje o potrawach w danym zamówieniu.
 **MenuItemId** - Identyfikator potrawy  
 **Quantity** - Ilość danej potrawy w zamówieniu  
 
-```SQL
+```TSQL
 CREATE TABLE OrderDetails (
     OrderId int  NOT NULL,
     MenuItemId int  NOT NULL,
@@ -190,7 +190,7 @@ Tabela przechowuje informacje o możliwych statusach zamówienia.
 **StatusName** - Nazwa statusu  
 **Description** - Opis co dany status oznacza  
 
-```SQL
+```TSQL
 CREATE TABLE OrderStatuses (
     StatusId int  NOT NULL IDENTITY,
     StatusName varchar(30)  NOT NULL,
@@ -220,7 +220,7 @@ Przechowuje Informacje o zamówieniu. W zależności od statusu zamówienia na t
 
 Tabela posiada index na StatusId  
 
-```SQL
+```TSQL
 CREATE TABLE Orders (
     OrderId int  NOT NULL IDENTITY,
     BranchId int  NOT NULL,
@@ -251,7 +251,7 @@ Przechowuje dane o tytułach zawodowych.
 **PositionName** - Nazwa tytułu  
 
 
-```SQL
+```TSQL
 CREATE TABLE Positions (
     PositionId int  NOT NULL IDENTITY,
     PositionName varchar(30)  NOT NULL,
@@ -268,7 +268,7 @@ Przechowuje dane o rezerwacjach. Narzucono warunek by czas rezerwacji był więk
 **ReservedFrom** - Czas rozpoczęcia rezerwacji  
 **ReservedTo** - Czas zakończenia rezerwacji  
 
-```SQL
+```TSQL
 CREATE TABLE ReservationsInfo (
     OrderId int  NOT NULL,
     TableId int  NOT NULL,
@@ -291,7 +291,7 @@ Tabela przechowuje dane o stolikach.
 
 Tabela posiada index na kolumnie BranchId
 
-```SQL
+```TSQL
 CREATE TABLE Tables (
     TableId int  NOT NULL IDENTITY,
     Chairs tinyint  NOT NULL,
@@ -311,7 +311,7 @@ Przechowuje informacje o wyczerpaniu danej pozycji z menu.
 **BranchId** - Identyfikator oddziału w którym wyczerpano danie  
 **MenuItemId** - Identyfikator dania  
 
-```SQL
+```TSQL
 CREATE TABLE UnavailableMenuItems (
     BranchId int  NOT NULL,
     MenuItemId int  NOT NULL,
@@ -320,7 +320,7 @@ CREATE TABLE UnavailableMenuItems (
 ```
 
 ## Relacje
-```SQL
+```TSQL
 -- foreign keys
 -- Reference: Customers_CompanyInfo (table: Customers)
 ALTER TABLE Customers ADD CONSTRAINT Customers_CompanyInfo
@@ -411,7 +411,7 @@ ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
 ### PossibleMenuItems
 Wyświetla dania które można dodać do menu.  
 
-```SQL
+```TSQL
 CREATE VIEW PossibleMenuItemsView
 AS
 SELECT MenuItemId,Name,UnitPrice FROM MenuItems WHERE DATEDIFF(MONTH,LastTimeRemoved,GETDATE()) >= 1 AND LastTimeAdded < LastTimeRemoved
@@ -424,7 +424,7 @@ Procedura do wykorzystania przez pracownika do zatwierdzania zamówień złożon
 **@orderId** - Identyfikator zamówienia do zatwierdzenia  
 **@employeeId** - Identyfikator pracownika zatwierdzającego zamówienie 
 
-```SQL
+```TSQL
 CREATE PROCEDURE approveOrder (@orderId INT,@employeeId INT)
 AS
 BEGIN
@@ -440,7 +440,7 @@ Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem Disco
 #### Wynik
 Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
 
-```SQL
+```TSQL
 CREATE FUNCTION calculateDiscountWithId1 (@CustomerId INT)
 RETURNS REAL
 AS
@@ -470,7 +470,7 @@ Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem Disco
 #### Wynik
 Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
 
-```SQL
+```TSQL
 CREATE FUNCTION calculateDiscountWithId2 (@CustomerId INT)
 RETURNS REAL
 AS
@@ -505,7 +505,7 @@ Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem Disco
 #### Wynik
 Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0. 
 
-```SQL
+```TSQL
 CREATE FUNCTION calculateDiscountWithId3 (@CustomerId INT)
 RETURNS REAL
 AS
@@ -541,7 +541,7 @@ Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem Disco
 #### Wynik
 Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
 
-```SQL
+```TSQL
 CREATE FUNCTION calculateDiscountWithId4 (@customerId INT )
 RETURNS REAL
 AS
@@ -588,7 +588,7 @@ Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem Disco
 #### Wynik
 Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
 
-```SQL
+```TSQL
 CREATE FUNCTION calculateDiscountWithId5 (@customerId INT )
 RETURNS REAL
 AS
