@@ -620,9 +620,575 @@ END
 RETURN @minDiscount * @streak;
 END
 ```
+### cancelOrder
+Procedura do anulowania zamówienia.    
+#### Parametry
+**@orderId** - Identyfikator zamówienia do anulowani  
 
+```TSQL
+CREATE PROCEDURE cancelOrder (@orderId INT)
+AS
+BEGIN
+UPDATE Orders
+SET StatusId = 5
+WHERE OrderId = @orderId
+END
+```
 
+### finishOrder
+Procedura kończąca zamówienie.
+#### Parametry
+**@orderId** - Identyfikator zamówienia do zakończenia
+
+```TSQL
+CREATE PROCEDURE finishOrder (@orderId INT)
+AS
+BEGIN
+UPDATE Orders
+SET StatusId = 4
+WHERE OrderId = @orderId
+END
+```
+
+### getDiscount
+Funkcja zwracająca wartość rabatu.
+#### Parametry
+**@discountId** - Identyfikator rabatu  
+**@customerId** - Identyfikator klienta  
+#### Wynik
+Wartość rabatu typu REAL 
+
+```TSQL
+CREATE FUNCTION getDiscount(@discountId INT,@customerId INT)
+RETURNS REAL
+AS
+BEGIN
+RETURN CASE @discountId
+	WHEN 1 THEN dbo.calculateDiscountWithId1(@customerId)
+	WHEN 2 THEN dbo.calculateDiscountWithId2(@customerId)
+	WHEN 3 THEN dbo.calculateDiscountWithId3(@customerId)
+	WHEN 4 THEN dbo.calculateDiscountWithId4(@customerId)
+	WHEN 5 THEN dbo.calculateDiscountWithId5(@customerId)
+	ELSE 0
+END;
+
+END
+```
+
+### getMonthlyRaportAboutDiscounts
+Funkcja tworząca raport miesięczny na temat rabatów.
+#### Parametry
+**@date** - data zawierająca miesiąc dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**DiscountId** - Identyfikator rabatu  
+**TotalPriceWithoutDiscount** - Suma cen bez rabatu  
+**TotalLoss** - Pieniądze stracone na rabaty  
+**OrdersWithDiscountNumber** - Ilość zamówień z danym rabatem  
+
+```TSQL
+CREATE FUNCTION getMonthlyRaportAboutDiscounts(@date DATE)
+RETURNS @discountReportTable TABLE (DiscountId INT, TotalPriceWithoutDiscount INT, TotalLoss INT, OrdersWithDiscountNumber INT)
+AS
+BEGIN
+
+INSERT INTO @discountReportTable SELECT DiscountTypeId,SUM(PriceWithoutDiscount),SUM(PriceWithoutDiscount) - SUM(FinalPrice),COUNT(*) FROM Orders
+WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(month,@date) = DATEPART(month,OrderMadeDate) GROUP BY DiscountTypeId
+
+RETURN;
+END;
+```
  
+### getMonthlyRaportAboutMenu
+Funkcja tworząca raport miesięczny na temat menu.
+#### Parametry
+**@date** - data zawierająca miesiąc dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**MenuItemId** - Identyfikator dania  
+**Sold** - Ilość sprzedanych porcji  
+**AddedToMenu** - Od kiedy pozycja widnieje w menu  
+
+```TSQL
+CREATE FUNCTION getMonthlyRaportAboutMenu(@date DATE)
+RETURNS @menuReportTable TABLE (MenuItemId INT,Sold INT, AddedToMenuDate DATE)
+AS
+BEGIN
+
+INSERT INTO @menuReportTable
+SELECT OrderDetails.MenuItemId,SUM(Quantity),MAX(LastTimeAdded) FROM OrderDetails
+LEFT JOIN Orders ON OrderDetails.OrderId = Orders.OrderId
+LEFT JOIN MenuItems ON MenuItems.MenuItemId = OrderDetails.MenuItemId
+WHERE DATEPART(month,OrderMadeDate) = DATEPART(month,@date)
+GROUP BY OrderDetails.MenuItemId
+
+
+
+RETURN;
+END;
+```
+
+### getMonthlyReportAboutOrders
+Funkcja tworząca raport miesięczny na temat zamówień.
+#### Parametry
+**@date** - data zawierająca miesiąc dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**StatusId** - Identyfikator statusu zamówienia  
+**OrdersMade** - Liczba zamówień  
+
+```TSQL
+CREATE FUNCTION getMonthlyReportAboutOrders(@date DATE)
+RETURNS @orderReportTable TABLE(OrderStatus INT,OrdersMade INT)
+AS
+BEGIN
+INSERT INTO @orderReportTable SELECT StatusId,COUNT(*) FROM Orders WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(month,@date) = DATEPART(month,OrderMadeDate) GROUP BY StatusId;
+RETURN;
+END
+```
+
+### getMonthlyRaportAboutReservations
+Funkcja tworząca raport miesięczny na temat rezerwacji.
+#### Parametry
+**@date** - data zawierająca miesiąc dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**BranchId** - Identyfikator oddziału  
+**ReservationsNumber** - Liczba rezerwacji  
+**ReservationsFromCompanies** - Liczba rezerwacji wykonanych przez firmę  
+
+```TSQL
+CREATE FUNCTION getMonthlyRaportAboutReservations(@date DATE)
+RETURNS @reservationsReportTable TABLE (BranchId INT, ReservationsNumber INT, ReservationsFromCompanies INT)
+AS
+BEGIN
+DECLARE @branchCursor CURSOR;
+DECLARE @branchId INT;
+SET @branchCursor = CURSOR FOR SELECT BranchId FROM Branches;
+
+OPEN @branchCursor;
+FETCH NEXT FROM @branchCursor INTO @branchId;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	DECLARE @reservationsNumber INT;
+	DECLARE @reservationsFromCompaniesNumber INT;
+
+	SELECT @reservationsNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId 
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId AND NOT StatusId = 5;
+
+	SELECT @reservationsFromCompaniesNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId LEFT JOIN Customers ON Orders.CustomerId = Customers.CustomerId
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId AND RepresentingCompany = 1 AND NOT StatusId = 5;
+
+	INSERT INTO @reservationsReportTable VALUES (@branchId,@reservationsNumber,@reservationsFromCompaniesNumber);
+
+	FETCH NEXT FROM @branchCursor INTO @branchId;
+
+END;
+
+CLOSE @branchCursor;
+DEALLOCATE @branchCursor;
+
+RETURN;
+END;
+```
+
+### getPossibleDiscounts
+Funkcja zwracająca możliwe rabaty.
+#### Parametry
+**@customerId** - Identyfikator klienta  
+#### Wynik
+Tabela z kolumnami:  
+**DiscountId** - Identyfikator rabatu  
+**DiscountValue** - Wartość rabatu  
+
+```TSQL
+CREATE FUNCTION getPossibleDiscounts (@customerId INT)
+RETURNS @possibleDiscounts TABLE (DiscountId INT,DiscountValue REAL)
+AS
+BEGIN
+
+    IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 
+    BEGIN
+        DECLARE @discount1 INT = dbo.calculateDiscountWithId1(@customerId);
+        IF @discount1 > 0 INSERT INTO @possibleDiscounts VALUES (1,@discount1);
+
+        DECLARE @discount2 INT = dbo.calculateDiscountWithId2(@customerId);
+        IF @discount2 > 0 INSERT INTO @possibleDiscounts VALUES (2,@discount2);
+        
+        DECLARE @discount3 INT = dbo.calculateDiscountWithId3(@customerId);
+        IF @discount3 > 0 INSERT INTO @possibleDiscounts VALUES (3,@discount3);
+    END 
+    ELSE 
+    BEGIN
+        DECLARE @discount4 INT = dbo.calculateDiscountWithId4(@customerId);
+        IF @discount4 > 0 INSERT INTO @possibleDiscounts VALUES (4,@discount4);
+
+        DECLARE @discount5 INT = dbo.calculateDiscountWithId5(@customerId);
+        IF @discount5 > 0 INSERT INTO @possibleDiscounts VALUES (5,@discount5);
+    END
+
+    RETURN;
+END
+```
+
+### getPreviousYearMonth
+Funkcja zwracająca poprzedni YearMonth( np. 200001 = 2000.01).
+#### Parametry
+**YM** - YearMonth
+#### Wynik
+YearMonth poprzedzający YM
+
+```TSQL
+CREATE FUNCTION getPreviousYearMonth (@YM INT)
+RETURNS INT
+AS
+BEGIN
+IF @YM % 100 = 1 RETURN @YM - 89;
+RETURN @YM - 1;
+END
+```
+
+### getPreviousYearQuater
+Funkcja zwracająca poprzedni YearQuater( np. 1 kwartał 2020 = 20201).
+#### Parametry
+**YQ** - YearQuater
+#### Wynik
+YearQuater poprzedzający YQ
+
+```TSQL
+CREATE FUNCTION getPreviousYearQuater(@YQ INT)
+RETURNS INT
+AS
+BEGIN
+IF @YQ % 10 = 1 RETURN @YQ - 7;
+RETURN @YQ - 1;
+END
+```
+
+### getRaportAboutCustomers
+Funkcja tworząca raport na temat klientów.
+#### Wynik
+Tabela z kolumnami:  
+**CustomerId** - Identyfikator klienta  
+**OrdersMade** - Liczba wykonanych zamówień  
+**TotalPriceWithoutDiscount** - Wartość wykonanych zamówień bez wliczania rabatów  
+**TotalFinalPrice** - Wartość wykonanych zamówień  
+**TotalLoseOnDiscount** - Straty na rzecz rabatu  
+
+```TSQL
+CREATE FUNCTION getRaportAboutCustomers()
+RETURNS @customerRaportTable TABLE (CustomerId INT, OrdersMade INT, TotalPriceWithoutDiscount MONEY,TotalFinalPrice MONEY, TotalLoseOnDiscounts MONEY)
+AS
+BEGIN
+
+INSERT INTO @customerRaportTable SELECT CustomerId,COUNT(*),SUM(PriceWithoutDiscount),SUM(FinalPrice),SUM(PriceWithoutDiscount - FinalPrice) FROM Orders WHERE NOT StatusId = 5 GROUP BY CustomerId
+
+RETURN;
+END
+```
+
+### getMonthlyWeeklyAboutDiscounts
+Funkcja tworząca raport tygodniowy na temat rabatów.
+#### Parametry
+**@date** - data zawierająca tydzień dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**DiscountId** - Identyfikator rabatu  
+**TotalPriceWithoutDiscount** - Suma cen bez rabatu  
+**TotalLoss** - Pieniądze stracone na rabaty  
+**OrdersWithDiscountNumber** - Ilość zamówień z danym rabatem  
+
+```TSQL
+CREATE FUNCTION getWeeklyRaportAboutDiscounts(@date DATE)
+RETURNS @discountReportTable TABLE (DiscountId INT, TotalPriceWithoutDiscount INT, TotalLoss INT, OrdersWithDiscountNumber INT)
+AS
+BEGIN
+
+INSERT INTO @discountReportTable SELECT DiscountTypeId,SUM(PriceWithoutDiscount),SUM(PriceWithoutDiscount) - SUM(FinalPrice),COUNT(*) FROM Orders
+WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(WEEK,@date) = DATEPART(WEEK,OrderMadeDate) GROUP BY DiscountTypeId
+
+
+
+RETURN;
+END;
+```
+ 
+### getWeeklyRaportAboutMenu
+Funkcja tworząca raport tygodniowy na temat menu.
+#### Parametry
+**@date** - data zawierająca tydzień dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**MenuItemId** - Identyfikator dania  
+**Sold** - Ilość sprzedanych porcji  
+**AddedToMenu** - Od kiedy pozycja widnieje w menu  
+
+```TSQL
+CREATE FUNCTION getWeeklyRaportAboutMenu(@date DATE)
+RETURNS @menuReportTable TABLE (MenuItemId INT,Sold INT, AddedToMenuDate DATE)
+AS
+BEGIN
+
+INSERT INTO @menuReportTable
+SELECT OrderDetails.MenuItemId,SUM(Quantity),MAX(LastTimeAdded) FROM OrderDetails
+LEFT JOIN Orders ON OrderDetails.OrderId = Orders.OrderId
+LEFT JOIN MenuItems ON MenuItems.MenuItemId = OrderDetails.MenuItemId
+WHERE DATEPART(week,OrderMadeDate) = DATEPART(week,@date)
+GROUP BY OrderDetails.MenuItemId
+
+
+
+RETURN;
+END;
+```
+
+### getWeeklyReportAboutOrders
+Funkcja tworząca raport tygodniowy na temat zamówień.
+#### Parametry
+**@date** - data zawierająca tydzień dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**StatusId** - Identyfikator statusu zamówienia  
+**OrdersMade** - Liczba zamówień  
+
+```TSQL
+CREATE FUNCTION getWeeklyReportAboutOrders(@date DATE)
+RETURNS @orderReportTable TABLE(OrderStatus INT,OrdersMade INT)
+AS
+BEGIN
+INSERT INTO @orderReportTable SELECT StatusId,COUNT(*) FROM Orders WHERE ABS(DATEDIFF(day,@date,OrderMadeDate)) < 7 AND DATEPART(week,@date) = DATEPART(week,OrderMadeDate) GROUP BY StatusId;
+RETURN;
+END
+```
+
+### getWeeklyRaportAboutReservations
+Funkcja tworząca raport tygodniowy na temat rezerwacji.
+#### Parametry
+**@date** - data zawierająca tydzień dla którego ma zostać stworzony raport  
+#### Wynik
+Tabela z kolumnami:  
+**BranchId** - Identyfikator oddziału  
+**ReservationsNumber** - Liczba rezerwacji  
+**ReservationsFromCompanies** - Liczba rezerwacji wykonanych przez firmę  
+
+```TSQL
+CREATE FUNCTION getWeeklyRaportAboutReservations(@date DATE)
+RETURNS @reservationsReportTable TABLE (BranchId INT, ReservationsNumber INT, ReservationsFromCompanies INT)
+AS
+BEGIN
+DECLARE @branchCursor CURSOR;
+DECLARE @branchId INT;
+SET @branchCursor = CURSOR FOR SELECT BranchId FROM Branches;
+
+OPEN @branchCursor;
+FETCH NEXT FROM @branchCursor INTO @branchId;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+	DECLARE @reservationsNumber INT;
+	DECLARE @reservationsFromCompaniesNumber INT;
+
+	SELECT @reservationsNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId 
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(WEEK,@date) = DATEPART(WEEK,OrderMadeDate) AND BranchId = @branchId;
+
+	SELECT @reservationsFromCompaniesNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId LEFT JOIN Customers ON Orders.CustomerId = Customers.CustomerId
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(WEEK,@date) = DATEPART(WEEK,OrderMadeDate) AND BranchId = @branchId AND RepresentingCompany = 1;
+
+	INSERT INTO @reservationsReportTable VALUES (@branchId,@reservationsNumber,@reservationsFromCompaniesNumber);
+
+	FETCH NEXT FROM @branchCursor INTO @branchId;
+
+END;
+
+CLOSE @branchCursor;
+DEALLOCATE @branchCursor;
+
+RETURN;
+END;
+```
+
+### getYearMonth
+Funkcja zamieniająca date na int ( 2020.01.25 -> 202001)
+#### Parametry
+**@date** - Data do zamienienia  
+#### Wynik
+INT powstały z zamiany
+
+```TSQL
+CREATE FUNCTION getYearMonth (@date DATETIME)
+RETURNS INT
+AS
+BEGIN
+RETURN YEAR(@date) * 100 + MONTH(@date)
+END
+```
+
+### getYearQuater
+Funkcja zamieniająca date na int ( 2020.02.25 -> 20201)
+#### Parametry
+**@date** - Data do zamienienia  
+#### Wynik
+INT powstały z zamiany
+
+```TSQL
+CREATE FUNCTION getYearQuater (@date DATETIME)
+RETURNS INT
+AS
+BEGIN
+RETURN YEAR(@date) * 10 + DATEPART(quarter,@date)
+END
+```
+
+### makeOrder
+Procedura do wykorzystania przez klientów składających zamówienie przez internet
+#### Parametry
+**@branchId** - Identyfikator oddziału do wykonania zamówienia  
+**@customerId** - Identyfikator klienta składającego zamówienie  
+**@discountType** - Identyfikator rabatu  
+**@orderServeDate** - Data odbioru zamówienia  
+**@orderDetails** - Informacje o zamówionych daniach  
+**@reservations** - Informacje o rezerwacjach  
+
+```TSQL
+CREATE PROCEDURE makeOrder
+(@branchId INT,@customerId INT,@discountType INT, @orderServeDate DATETIME,@orderDetails OrderDetailsTable READONLY,@reservations ReservationTable READONLY)
+AS
+BEGIN
+
+DECLARE @priceWithoutDiscount MONEY = (SELECT SUM(UnitPrice * Quantity) FROM MenuItems LEFT JOIN @orderDetails od ON MenuItems.MenuItemId = od.MenuItemId);
+DECLARE @finalPrice MONEY;
+DECLARE @discount REAL;
+
+SET @discount = dbo.getDiscount(@discountType,@customerId)
+
+SET @finalPrice = @priceWithoutDiscount * (1 - @discount)
+
+DECLARE @withReservation BIT = (SELECT (CASE COUNT(*) WHEN 0 THEN 0 ELSE 1 END)  FROM @reservations)
+
+DECLARE @orderIdTable TABLE(orderId INT);
+INSERT INTO Orders(BranchId,CustomerId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderServeDate)
+OUTPUT inserted.OrderId INTO @orderIdTable
+VALUES(@branchId,@customerId,1,@withReservation,@priceWithoutDiscount,@discountType,@discount,@finalPrice,0,GETDATE(),@orderServeDate);
+
+DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
+
+INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
+INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
+
+
+END
+```
+
+### serveOrder
+Procedura zmieniająca status zamówienia na podane(served)
+#### Parametry
+**@orderId** - Identyfikator zamówienia  
+
+```TSQL
+CREATE PROCEDURE serveOrder (@orderId INT)
+AS
+BEGIN
+UPDATE Orders
+SET OrderServedDate = GETDATE(),StatusId = 3
+WHERE OrderId = @orderId
+END
+```
+
+### takeInvoiceForMonth
+Procedura wyświetlająca dane potrzebne do faktury miesięcznej
+#### Parametry
+**@customerId** - Identyfikator klienta  
+**@date** - Data z miesiącem na który chcemy wystawić fakturę  
+
+
+```TSQL
+CREATE PROCEDURE takeInvoiceForMonth
+(@customerId INT, @date DATE)
+AS
+BEGIN
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 RETURN
+
+
+SELECT Name,Street,StreetNumber,City,PostCode,NIP FROM CompanyInfo LEFT JOIN Customers ON Customers.CompanyId = CompanyInfo.CompanyId WHERE @customerId = CustomerId
+
+
+SELECT MAX(Name),SUM(Quantity) AS Quantity, (SUM(Quantity) * MAX(UnitPrice)) AS Price 
+FROM OrderDetails LEFT JOIN MenuItems ON OrderDetails.MenuItemId = MenuItems.MenuItemId 
+WHERE OrderId IN (SELECT OrderId FROM Orders WHERE CustomerId = @customerId AND YEAR(OrderMadeDate) = YEAR(@date) AND MONTH(OrderMadeDate) = MONTH(@date) AND StatusId = 4) GROUP BY OrderDetails.MenuItemId
+
+SELECT SUM(PriceWithoutDiscount) as TotalPriceWithoutDiscount,SUM(FinalPrice) AS TotalFinalPrice 
+FROM Orders WHERE OrderId IN 
+(SELECT OrderId FROM Orders WHERE CustomerId = @customerId AND YEAR(OrderMadeDate) = YEAR(@date) AND MONTH(OrderMadeDate) = MONTH(@date) AND StatusId = 4)
+END
+```
+
+### takeInvoiceForOrder
+Procedura wyświetlająca informacje potrzebne do wystawienia faktury na zamówienie
+#### Parametry
+**@orderId** -- Identyfikator zamówienia na które wystawiania jest faktura  
+
+```TSQL
+CREATE PROCEDURE takeInvoiceForOrder
+(@orderId INT)
+AS
+BEGIN
+
+IF (SELECT RepresentingCompany FROM Orders LEFT JOIN Customers ON Customers.CustomerId = Orders.CustomerId WHERE OrderId = @orderId) = 0 RETURN
+
+DECLARE @customerId INT = (SELECT CustomerId FROM Orders WHERE OrderId = @orderId)
+
+SELECT Name,Street,StreetNumber,City,PostCode,NIP FROM CompanyInfo LEFT JOIN Customers ON Customers.CompanyId = CompanyInfo.CompanyId WHERE @customerId = CustomerId
+
+SELECT MAX(Name),SUM(Quantity) AS Quantity, (SUM(Quantity) * MAX(UnitPrice)) AS Price FROM OrderDetails LEFT JOIN MenuItems ON OrderDetails.MenuItemId = MenuItems.MenuItemId WHERE OrderId = @orderId GROUP BY OrderDetails.MenuItemId
+
+SELECT SUM(PriceWithoutDiscount) as TotalPriceWithoutDiscount,SUM(FinalPrice) AS TotalFinalPrice FROM Orders WHERE OrderId = @orderId
+END
+```
+
+### takeOrder
+Procedura do wykorzystania przez pracownika przyjmującego zamówienie
+#### Parametry
+**@branchId** - Identyfikator oddziału do wykonania zamówienia  
+**@customerId** - Identyfikator klienta składającego zamówienie  
+**@employeeId** - Identyfikator pracownika przyjmującego zamówienie
+**@discountType** - Identyfikator rabatu  
+**@orderServeDate** - Data odbioru zamówienia  
+**@orderDetails** - Informacje o zamówionych daniach  
+**@reservations** - Informacje o rezerwacjach  
+
+```TSQL
+CREATE PROCEDURE takeOrder
+(@branchId INT,@customerId INT,@employeeId INT,@discountType INT, @orderServeDate DATETIME,@orderDetails OrderDetailsTable READONLY,@reservations ReservationTable READONLY)
+AS
+BEGIN
+
+DECLARE @priceWithoutDiscount MONEY = (SELECT SUM(UnitPrice * Quantity) FROM MenuItems LEFT JOIN @orderDetails od ON MenuItems.MenuItemId = od.MenuItemId);
+DECLARE @finalPrice MONEY;
+DECLARE @discount REAL;
+
+SET @discount = dbo.getDiscount(@discountType,@customerId)
+
+SET @finalPrice = @priceWithoutDiscount * (1 - @discount)
+
+DECLARE @withReservation BIT = (SELECT (CASE COUNT(*) WHEN 0 THEN 0 ELSE 1 END)  FROM @reservations)
+
+DECLARE @orderIdTable TABLE(orderId INT);
+INSERT INTO Orders(BranchId,CustomerId,EmployeeId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderApprovedDate,OrderServeDate)
+OUTPUT inserted.OrderId INTO @orderIdTable
+VALUES(@branchId,@customerId,@employeeId,2,@withReservation,@priceWithoutDiscount,@discountType,@discount,@finalPrice,0,GETDATE(),GETDATE(),@orderServeDate);
+
+DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
+
+INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
+INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
+
+
+END
+```
+
+
 
 
 

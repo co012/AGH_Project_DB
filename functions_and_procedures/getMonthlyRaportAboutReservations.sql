@@ -15,10 +15,10 @@ BEGIN
 	DECLARE @reservationsFromCompaniesNumber INT;
 
 	SELECT @reservationsNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId 
-	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId;
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId AND NOT StatusId = 5;
 
 	SELECT @reservationsFromCompaniesNumber = COUNT(*) FROM ReservationsInfo LEFT JOIN Orders ON Orders.OrderId = ReservationsInfo.OrderId LEFT JOIN Customers ON Orders.CustomerId = Customers.CustomerId
-	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId AND RepresentingCompany = 1;
+	WHERE YEAR(@date) = YEAR(OrderMadeDate) AND DATEPART(MONTH,@date) = DATEPART(MONTH,OrderMadeDate) AND BranchId = @branchId AND RepresentingCompany = 1 AND NOT StatusId = 5;
 
 	INSERT INTO @reservationsReportTable VALUES (@branchId,@reservationsNumber,@reservationsFromCompaniesNumber);
 
