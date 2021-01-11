@@ -319,6 +319,312 @@ CREATE TABLE UnavailableMenuItems (
 );
 ```
 
+## Relacje
+```SQL
+-- foreign keys
+-- Reference: Customers_CompanyInfo (table: Customers)
+ALTER TABLE Customers ADD CONSTRAINT Customers_CompanyInfo
+    FOREIGN KEY (CompanyId)
+    REFERENCES CompanyInfo (CompanyId)
+    ON DELETE  CASCADE;
+
+-- Reference: Employees_Branches (table: Employees)
+ALTER TABLE Employees ADD CONSTRAINT Employees_Branches
+    FOREIGN KEY (BranchId)
+    REFERENCES Branches (BranchId);
+
+-- Reference: Employees_Positions (table: Employees)
+ALTER TABLE Employees ADD CONSTRAINT Employees_Positions
+    FOREIGN KEY (PositionId)
+    REFERENCES Positions (PositionId);
+
+-- Reference: MenuItems_Categories (table: MenuItems)
+ALTER TABLE MenuItems ADD CONSTRAINT MenuItems_Categories
+    FOREIGN KEY (CategoryId)
+    REFERENCES Categories (CategoryId);
+
+-- Reference: OrderDetails_MenuItems (table: OrderDetails)
+ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_MenuItems
+    FOREIGN KEY (MenuItemId)
+    REFERENCES MenuItems (MenuItemId);
+
+-- Reference: OrderDetails_Orders (table: OrderDetails)
+ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_Orders
+    FOREIGN KEY (OrderId)
+    REFERENCES Orders (OrderId);
+
+-- Reference: Orders_Branches (table: Orders)
+ALTER TABLE Orders ADD CONSTRAINT Orders_Branches
+    FOREIGN KEY (BranchId)
+    REFERENCES Branches (BranchId);
+
+-- Reference: Orders_Customers (table: Orders)
+ALTER TABLE Orders ADD CONSTRAINT Orders_Customers
+    FOREIGN KEY (CustomerId)
+    REFERENCES Customers (CustomerId);
+
+-- Reference: Orders_DiscountsTypes (table: Orders)
+ALTER TABLE Orders ADD CONSTRAINT Orders_DiscountsTypes
+    FOREIGN KEY (DiscountTypeId)
+    REFERENCES DiscountsTypes (DiscountTypeId);
+
+-- Reference: Orders_Employees (table: Orders)
+ALTER TABLE Orders ADD CONSTRAINT Orders_Employees
+    FOREIGN KEY (EmployeeId)
+    REFERENCES Employees (EmployeeId);
+
+-- Reference: Orders_OrderStatuses (table: Orders)
+ALTER TABLE Orders ADD CONSTRAINT Orders_OrderStatuses
+    FOREIGN KEY (StatusId)
+    REFERENCES OrderStatuses (StatusId);
+
+-- Reference: ReservationsInfo_Orders (table: ReservationsInfo)
+ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
+    FOREIGN KEY (OrderId)
+    REFERENCES Orders (OrderId);
+
+-- Reference: ReservationsInfo_Tables (table: ReservationsInfo)
+ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Tables
+    FOREIGN KEY (TableId)
+    REFERENCES Tables (TableId);
+
+-- Reference: Tables_Branches (table: Tables)
+ALTER TABLE Tables ADD CONSTRAINT Tables_Branches
+    FOREIGN KEY (BranchId)
+    REFERENCES Branches (BranchId);
+
+-- Reference: UnavalibleMenuItems_Branches (table: UnavailableMenuItems)
+ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_Branches
+    FOREIGN KEY (BranchId)
+    REFERENCES Branches (BranchId);
+
+-- Reference: UnavalibleMenuItems_MenuItems (table: UnavailableMenuItems)
+ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
+    FOREIGN KEY (MenuItemId)
+    REFERENCES MenuItems (MenuItemId)
+    ON DELETE  CASCADE 
+    ON UPDATE  CASCADE;
+
+```
+
+## Widoki
+### PossibleMenuItems
+Wyświetla dania które można dodać do menu.  
+
+```SQL
+CREATE VIEW PossibleMenuItemsView
+AS
+SELECT MenuItemId,Name,UnitPrice FROM MenuItems WHERE DATEDIFF(MONTH,LastTimeRemoved,GETDATE()) >= 1 AND LastTimeAdded < LastTimeRemoved
+```
+
+## Funkcje i Procedury
+### approveOrder
+Procedura do wykorzystania przez pracownika do zatwierdzania zamówień złożonych przez internet.  
+#### Parametry
+**@orderId** - Identyfikator zamówienia do zatwierdzenia  
+**@employeeId** - Identyfikator pracownika zatwierdzającego zamówienie 
+
+```SQL
+CREATE PROCEDURE approveOrder (@orderId INT,@employeeId INT)
+AS
+BEGIN
+UPDATE Orders
+SET OrderApprovedDate = GETDATE(),StatusId = 2,EmployeeId = @employeeId
+WHERE OrderId = @orderId
+END
+```
+### calculateDiscountWithId1
+Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem DiscountTypeId = 1.  
+#### Parametry
+**@CustomerId** - Identyfikator klienta  
+#### Wynik
+Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
+
+```SQL
+CREATE FUNCTION calculateDiscountWithId1 (@CustomerId INT)
+RETURNS REAL
+AS
+BEGIN
+DECLARE @typeId INT = 1;
+DECLARE @minVal MONEY;
+DECLARE @minOrders INT;
+SET @minVal = (SELECT MinPrice FROM DiscountsTypes where DiscountTypeId = @typeId);
+SET @minOrders = (SELECT MinOrders FROM DiscountsTypes where DiscountTypeId = @typeId)
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @CustomerId) = 1 RETURN 0;
+
+DECLARE @var REAL = 0;
+SET @var = (SELECT COUNT(*) FROM Orders WHERE CustomerId = @CustomerId AND FinalPrice > @minVal AND NOT StatusId = 5);
+
+IF @var >= 2 * @minOrders RETURN (SELECT CurrentMaxDiscount FROM DiscountsTypes WHERE DiscountTypeId = @typeId)
+ELSE IF @var >= 1 * @minOrders RETURN (SELECT CurrentMinDiscount FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+
+RETURN 0
+
+END;
+```
+### calculateDiscountWithId2
+Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem DiscountTypeId = 2.  
+#### Parametry
+**@CustomerId** - Identyfikator klienta  
+#### Wynik
+Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
+
+```SQL
+CREATE FUNCTION calculateDiscountWithId2 (@CustomerId INT)
+RETURNS REAL
+AS
+BEGIN
+DECLARE @typeId INT = 2;
+DECLARE @minVal MONEY;
+DECLARE @discount REAL;
+DECLARE @duration INT;
+SET @minVal = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @discount = (SELECT CurrentMinDiscount From DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @duration = (SELECT Duration From DiscountsTypes WHERE DiscountTypeId = @typeId);
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @CustomerId) = 1 RETURN 0;
+
+IF (SELECT COUNT(*) FROM Orders WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId) > 0
+BEGIN
+	DECLARE @discountDate DATETIME = 
+	(SELECT TOP 1 OrderMadeDate FROM Orders WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId ORDER BY OrderMadeDate ASC);
+
+	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
+	ELSE RETURN 0;
+END
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) > @minVal RETURN @discount;
+
+RETURN 0
+END;
+```
+### calculateDiscountWithId3
+Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem DiscountTypeId = 3.  
+#### Parametry
+**@CustomerId** - Identyfikator klienta  
+#### Wynik
+Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0. 
+
+```SQL
+CREATE FUNCTION calculateDiscountWithId3 (@CustomerId INT)
+RETURNS REAL
+AS
+BEGIN
+DECLARE @typeId INT = 3;
+DECLARE @minVal MONEY;
+DECLARE @discount REAL;
+DECLARE @duration INT;
+SET @minVal = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @discount = (SELECT CurrentMinDiscount From DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @duration = (SELECT Duration From DiscountsTypes WHERE DiscountTypeId = @typeId);
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @CustomerId) = 1 RETURN 0;
+
+IF (SELECT COUNT(*) FROM Orders WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId) > 0
+BEGIN
+	DECLARE @discountDate DATETIME = 
+	(SELECT TOP 1 OrderMadeDate FROM Orders WHERE CustomerId = @CustomerId AND DiscountTypeId = @typeId ORDER BY OrderMadeDate ASC);
+
+	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
+	ELSE RETURN 0;
+END
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) > @minVal RETURN @discount;
+
+RETURN 0
+
+END;
+```
+### calculateDiscountWithId4
+Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem DiscountTypeId = 4.  
+#### Parametry
+**@customerId** - Identyfikator klienta  
+#### Wynik
+Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
+
+```SQL
+CREATE FUNCTION calculateDiscountWithId4 (@customerId INT )
+RETURNS REAL
+AS
+BEGIN
+DECLARE @typeId INT = 4;
+DECLARE @from INT;
+DECLARE @minDiscount REAL;
+DECLARE @maxDiscount REAL;
+DECLARE @minPrice MONEY;
+DECLARE @minOrders INT;
+DECLARE @nowYM INT;
+
+SET @minDiscount = (SELECT CurrentMinDiscount FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @maxDiscount = (SELECT CurrentMaxDiscount FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @minPrice = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @minOrders = (SELECT MinOrders FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @nowYM = dbo.getYearMonth(GETDATE());
+
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 RETURN 0;
+
+DECLARE @maxStreak INT = CEILING( @maxDiscount / @minDiscount );
+DECLARE @streak INT = 0;
+DECLARE @YMIterator INT = dbo.getPreviousYearMonth(@nowYM);
+
+WHILE @streak < @maxStreak
+BEGIN
+    DECLARE @TotalPrice MONEY, @OrdersMade INT;
+    SELECT @TotalPrice =  SUM(FinalPrice), @OrdersMade = COUNT(*) FROM Orders WHERE CustomerId = @customerId AND dbo.getYearMonth(OrderMadeDate) = @YMIterator AND NOT StatusId = 5;
+    IF ISNULL(@TotalPrice,0) < @minPrice OR @OrdersMade < @minOrders BREAK;
+    SET @streak = @streak + 1;
+    SET @YMIterator = dbo.getPreviousYearMonth(@YMIterator);
+END
+
+
+IF @maxDiscount < @minDiscount * @streak RETURN @maxDiscount;
+RETURN @minDiscount * @streak;
+END
+```
+### calculateDiscountWithId5
+Funkcja obliczająca rabat reprezentowany w tablicy DiscountsTypes z polem DiscountTypeId = 5.  
+#### Parametry
+**@customerId** - Identyfikator klienta  
+#### Wynik
+Rabat reprezentowany przez wartość typu REAL,w przypadku gdy klient nie przysługuje rabat zwraca 0.  
+
+```SQL
+CREATE FUNCTION calculateDiscountWithId5 (@customerId INT )
+RETURNS REAL
+AS
+BEGIN
+DECLARE @typeId INT = 5;
+DECLARE @minDiscount REAL;
+DECLARE @minPrice MONEY;
+DECLARE @nowYQ INT;
+SET @minDiscount = (SELECT CurrentMinDiscount FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @minPrice = (SELECT MinPrice FROM DiscountsTypes WHERE DiscountTypeId = @typeId);
+SET @nowYQ = dbo.getYearQuater(GETDATE());
+
+
+IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 RETURN 0;
+
+
+DECLARE @streak INT = 0;
+DECLARE @YQIterator INT = dbo.getPreviousYearQuater(@nowYQ);
+
+WHILE @streak * @minDiscount < 1
+BEGIN
+    DECLARE @TotalPrice MONEY;
+    (SELECT @TotalPrice = SUM(FinalPrice) FROM Orders WHERE CustomerId = @customerId AND dbo.getYearQuater(OrderMadeDate) = @YQIterator AND NOT StatusId = 5)
+    IF ISNULL(@TotalPrice,0)  < @minPrice BREAK;
+    SET @streak = @streak + 1;
+    SET @YQIterator = dbo.getPreviousYearQuater(@YQIterator);
+END
+
+RETURN @minDiscount * @streak;
+END
+```
+
+
+ 
+
+
 
 
 
