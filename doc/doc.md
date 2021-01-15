@@ -1201,7 +1201,7 @@ Procedura do wykorzystania przez pracownika przyjmującego zamówienie
 #### Parametry
 **@branchId** - Identyfikator oddziału do wykonania zamówienia  
 **@customerId** - Identyfikator klienta składającego zamówienie  
-**@employeeId** - Identyfikator pracownika przyjmującego zamówienie
+**@employeeId** - Identyfikator pracownika przyjmującego zamówienie  
 **@discountType** - Identyfikator rabatu  
 **@orderServeDate** - Data odbioru zamówienia  
 **@orderDetails** - Informacje o zamówionych daniach  
@@ -1237,9 +1237,47 @@ INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
 END
 ```
 
+## Typy Własne
+### OrderDetailsTable
+Służy do przekazania do procedury takeOrder i makeOrder informacji o zamówionych daniach  
 
+#### Kolumny 
+**MenuItemId** - Identyfikator dania  
+**Quantity** - Ilość porcji danego dania  
 
+```TSQL
+CREATE TYPE OrderDetailsTable AS TABLE (MenuItemId INT,Quantity INT)
+```
+### ReservationTable
+Służy do przekazania do procedury takeOrder i makeOrder informacji o rezerwacjach w zamówieniu
 
+#### Kolumny
+**TableId** - Identyfikator stolika  
+**ReservedFor** - Dla kogo jest on zarezerwowany  
+**ReservedFrom** - Czas startu rezerwacji  
+**ReservedTo** - Czas końca rezerwacji  
+
+```TSQL
+CREATE TYPE ReservationTable AS TABLE (TableId INT, ReservedFor VARCHAR(255),ReservedFrom DATETIME, ReservedTo DATETIME)
+
+```
+### MenuReplacement
+Służy do przekazania informacji o zmianach w menu
+### Kolumny
+**OldMenuItemId** - Identyfikator dania do zdjęcia z menu  
+**NewMenuItemId** - Identyfikator dania do wstawienia do menu  
+
+```TSQL
+CREATE TYPE MenuReplacement AS TABLE (OldMenuItemId INT,NewMenuItemId INT NOT NULL)
+
+```
+### Kontrola Dostępu
+Pobieżna propozycja praw dostępu  
+**Księgowe** - funkcje i procedury do tworzenia raportów  
+**Pracownik Kuchni** - Nic  
+**Pracownik Obsługi klienta** - funkcje i procedury z Order lub Invoice w nazwie  
+**Klient** - dostęp do MenuView i procedury makeOrder  
+**Szef** -  procedura replaceMenu  
 
 
 

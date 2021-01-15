@@ -9,7 +9,7 @@ from generators.orders_generator_simple import populateDatabaseWithOrders
 from os import listdir
 import pyodbc
 
-ip = "192.168.55.101"
+ip = "192.168.55.105"
 login = "SA"
 password = "ZAQ!2wsx"
 database = "Project"
