@@ -18,7 +18,8 @@
     - [UnavailableMenuItems](#unavailablemenuitems)
   - [Relacje](#relacje)
   - [Widoki](#widoki)
-    - [PossibleMenuItems](#possiblemenuitems)
+    - [PossibleMenuItemsView](#possiblemenuitemsview)
+    - [Menu](#menu)
   - [Funkcje i Procedury](#funkcje-i-procedury)
     - [approveOrder](#approveorder)
     - [calculateDiscountWithId1](#calculatediscountwithid1)
@@ -48,6 +49,14 @@
     - [takeInvoiceForMonth](#takeinvoiceformonth)
     - [takeInvoiceForOrder](#takeinvoicefororder)
     - [takeOrder](#takeorder)
+  - [Triggery](#triggery)
+    - [CheckIfReservationCanBeMadeTrigger](#checkifreservationcanbemadetrigger)
+    - [CheckIfCanOrderSeafoodTrigger](#checkifcanorderseafoodtrigger)
+  - [Własne Typy](#własne-typy)
+    - [OrderDetailsTable](#orderdetailstable)
+    - [ReservationTable](#reservationtable)
+    - [MenuReplacement](#menureplacement)
+  - [Kontrola Dostępu](#kontrola-dostępu)
 ## Schemat  
 ![Schemat](schemat.png)
 ## Tabele  
@@ -400,7 +409,8 @@ ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_MenuItems
 -- Reference: OrderDetails_Orders (table: OrderDetails)
 ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_Orders
     FOREIGN KEY (OrderId)
-    REFERENCES Orders (OrderId);
+    REFERENCES Orders (OrderId)
+    ON DELETE  CASCADE;
 
 -- Reference: Orders_Branches (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_Branches
@@ -410,7 +420,8 @@ ALTER TABLE Orders ADD CONSTRAINT Orders_Branches
 -- Reference: Orders_Customers (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_Customers
     FOREIGN KEY (CustomerId)
-    REFERENCES Customers (CustomerId);
+    REFERENCES Customers (CustomerId)
+    ON DELETE  CASCADE;
 
 -- Reference: Orders_DiscountsTypes (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_DiscountsTypes
@@ -430,7 +441,8 @@ ALTER TABLE Orders ADD CONSTRAINT Orders_OrderStatuses
 -- Reference: ReservationsInfo_Orders (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
     FOREIGN KEY (OrderId)
-    REFERENCES Orders (OrderId);
+    REFERENCES Orders (OrderId)
+    ON DELETE  CASCADE;
 
 -- Reference: ReservationsInfo_Tables (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Tables
@@ -453,11 +465,10 @@ ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
     REFERENCES MenuItems (MenuItemId)
     ON DELETE  CASCADE 
     ON UPDATE  CASCADE;
-
 ```
 
 ## Widoki
-### PossibleMenuItems
+### PossibleMenuItemsView
 Wyświetla dania które można dodać do menu.  
 
 ```TSQL
@@ -466,6 +477,14 @@ AS
 SELECT MenuItemId,Name,UnitPrice FROM MenuItems WHERE DATEDIFF(MONTH,LastTimeRemoved,GETDATE()) >= 1 AND LastTimeAdded < LastTimeRemoved
 ```
 
+### MenuView
+Wyświetla aktualne menu
+
+```TSQL
+CREATE VIEW MenuView
+AS
+SELECT MenuItemId,Name,UnitPrice FROM MenuItems WHERE LastTimeAdded > LastTimeRemoved
+```
 ## Funkcje i Procedury
 ### approveOrder
 Procedura do wykorzystania przez pracownika do zatwierdzania zamówień złożonych przez internet.  
@@ -542,7 +561,7 @@ BEGIN
 	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
 	ELSE RETURN 0;
 END
-ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) > @minVal RETURN @discount;
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) >= @minVal RETURN @discount;
 
 RETURN 0
 END;
@@ -577,7 +596,7 @@ BEGIN
 	IF DATEDIFF(day,@discountDate,GETDATE()) < @duration RETURN @discount
 	ELSE RETURN 0;
 END
-ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) > @minVal RETURN @discount;
+ELSE IF (SELECT SUM(FinalPrice) FROM Orders  WHERE CustomerId = @CustomerId  AND NOT StatusId = 5) >= @minVal RETURN @discount;
 
 RETURN 0
 
@@ -859,21 +878,21 @@ BEGIN
 
     IF (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId) = 0 
     BEGIN
-        DECLARE @discount1 INT = dbo.calculateDiscountWithId1(@customerId);
+        DECLARE @discount1 REAL = dbo.calculateDiscountWithId1(@customerId);
         IF @discount1 > 0 INSERT INTO @possibleDiscounts VALUES (1,@discount1);
 
-        DECLARE @discount2 INT = dbo.calculateDiscountWithId2(@customerId);
+        DECLARE @discount2 REAL = dbo.calculateDiscountWithId2(@customerId);
         IF @discount2 > 0 INSERT INTO @possibleDiscounts VALUES (2,@discount2);
         
-        DECLARE @discount3 INT = dbo.calculateDiscountWithId3(@customerId);
+        DECLARE @discount3 REAL = dbo.calculateDiscountWithId3(@customerId);
         IF @discount3 > 0 INSERT INTO @possibleDiscounts VALUES (3,@discount3);
     END 
     ELSE 
     BEGIN
-        DECLARE @discount4 INT = dbo.calculateDiscountWithId4(@customerId);
+        DECLARE @discount4 REAL = dbo.calculateDiscountWithId4(@customerId);
         IF @discount4 > 0 INSERT INTO @possibleDiscounts VALUES (4,@discount4);
 
-        DECLARE @discount5 INT = dbo.calculateDiscountWithId5(@customerId);
+        DECLARE @discount5 REAL = dbo.calculateDiscountWithId5(@customerId);
         IF @discount5 > 0 INSERT INTO @possibleDiscounts VALUES (5,@discount5);
     END
 
@@ -1108,12 +1127,16 @@ BEGIN
 DECLARE @priceWithoutDiscount MONEY = (SELECT SUM(UnitPrice * Quantity) FROM MenuItems LEFT JOIN @orderDetails od ON MenuItems.MenuItemId = od.MenuItemId);
 DECLARE @finalPrice MONEY;
 DECLARE @discount REAL;
+DECLARE @ordersMade INT = (SELECT COUNT(*) FROM Orders WHERE CustomerId = @customerId AND NOT StatusId = 5);
+DECLARE @isCompany BIT = (SELECT RepresentingCompany FROM Customers WHERE CustomerId = @customerId);
+SET @discount = dbo.getDiscount(@discountType,@customerId);
 
-SET @discount = dbo.getDiscount(@discountType,@customerId)
-
-SET @finalPrice = @priceWithoutDiscount * (1 - @discount)
+SET @finalPrice = @priceWithoutDiscount * (1 - ISNULL(@discount,0));
 
 DECLARE @withReservation BIT = (SELECT (CASE COUNT(*) WHEN 0 THEN 0 ELSE 1 END)  FROM @reservations)
+
+IF @withReservation = 1 AND ( (@ordersMade >= 5 AND @finalPrice < 50) OR  (@ordersMade < 5 AND @finalPrice < 200) ) AND  @isCompany = 0 RETURN;
+IF (SELECT COUNT(*) FROM @orderDetails) > (SELECT COUNT(*) FROM MenuView INNER JOIN @orderDetails od ON od.MenuItemId = MenuView.MenuItemId) RETURN; 
 
 DECLARE @orderIdTable TABLE(orderId INT);
 INSERT INTO Orders(BranchId,CustomerId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderServeDate)
@@ -1123,8 +1146,13 @@ VALUES(@branchId,@customerId,1,@withReservation,@priceWithoutDiscount,@discountT
 DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
 
 INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @orderDetails) 
+BEGIN
+DELETE FROM Orders WHERE OrderId = @orderId;
+RETURN
+END
 INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
-
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
 
 END
 ```
@@ -1219,9 +1247,11 @@ DECLARE @discount REAL;
 
 SET @discount = dbo.getDiscount(@discountType,@customerId)
 
-SET @finalPrice = @priceWithoutDiscount * (1 - @discount)
+SET @finalPrice = @priceWithoutDiscount * (1 - ISNULL(@discount,0))
 
 DECLARE @withReservation BIT = (SELECT (CASE COUNT(*) WHEN 0 THEN 0 ELSE 1 END)  FROM @reservations)
+IF @withReservation = 1 AND @customerId = NULL RETURN 
+IF (SELECT COUNT(*) FROM @orderDetails) > (SELECT COUNT(*) FROM MenuView INNER JOIN @orderDetails od ON od.MenuItemId = MenuView.MenuItemId) RETURN; 
 
 DECLARE @orderIdTable TABLE(orderId INT);
 INSERT INTO Orders(BranchId,CustomerId,EmployeeId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderApprovedDate,OrderServeDate)
@@ -1231,11 +1261,21 @@ VALUES(@branchId,@customerId,@employeeId,2,@withReservation,@priceWithoutDiscoun
 DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
 
 INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @orderDetails) 
+BEGIN
+DELETE FROM Orders WHERE OrderId = @orderId;
+RETURN
+END
 INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
-
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
 
 END
 ```
+## Triggery
+### CheckIfReservationCanBeMadeTrigger
+Sprawdza czy stolik może zostać zarezerwowany.
+### CheckIfCanOrderSeafoodTrigger
+Sprawdza czy w danym dniu możliwe jest zamówienie owoców morza
 
 ## Typy Własne
 ### OrderDetailsTable
@@ -1263,7 +1303,7 @@ CREATE TYPE ReservationTable AS TABLE (TableId INT, ReservedFor VARCHAR(255),Res
 ```
 ### MenuReplacement
 Służy do przekazania informacji o zmianach w menu
-### Kolumny
+#### Kolumny
 **OldMenuItemId** - Identyfikator dania do zdjęcia z menu  
 **NewMenuItemId** - Identyfikator dania do wstawienia do menu  
 
@@ -1271,8 +1311,10 @@ Służy do przekazania informacji o zmianach w menu
 CREATE TYPE MenuReplacement AS TABLE (OldMenuItemId INT,NewMenuItemId INT NOT NULL)
 
 ```
-### Kontrola Dostępu
+## Kontrola Dostępu
 Pobieżna propozycja praw dostępu  
+
+
 **Księgowe** - funkcje i procedury do tworzenia raportów  
 **Pracownik Kuchni** - Nic  
 **Pracownik Obsługi klienta** - funkcje i procedury z Order lub Invoice w nazwie  

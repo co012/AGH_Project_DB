@@ -1,5 +1,5 @@
 -- Created by Vertabelo (http://vertabelo.com)
--- Last modification date: 2021-01-11 12:50:51.906
+-- Last modification date: 2021-01-15 16:36:35.283
 
 -- tables
 -- Table: Branches
@@ -230,7 +230,8 @@ ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_MenuItems
 -- Reference: OrderDetails_Orders (table: OrderDetails)
 ALTER TABLE OrderDetails ADD CONSTRAINT OrderDetails_Orders
     FOREIGN KEY (OrderId)
-    REFERENCES Orders (OrderId);
+    REFERENCES Orders (OrderId)
+    ON DELETE  CASCADE;
 
 -- Reference: Orders_Branches (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_Branches
@@ -240,7 +241,8 @@ ALTER TABLE Orders ADD CONSTRAINT Orders_Branches
 -- Reference: Orders_Customers (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_Customers
     FOREIGN KEY (CustomerId)
-    REFERENCES Customers (CustomerId);
+    REFERENCES Customers (CustomerId)
+    ON DELETE  CASCADE;
 
 -- Reference: Orders_DiscountsTypes (table: Orders)
 ALTER TABLE Orders ADD CONSTRAINT Orders_DiscountsTypes
@@ -260,7 +262,8 @@ ALTER TABLE Orders ADD CONSTRAINT Orders_OrderStatuses
 -- Reference: ReservationsInfo_Orders (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Orders
     FOREIGN KEY (OrderId)
-    REFERENCES Orders (OrderId);
+    REFERENCES Orders (OrderId)
+    ON DELETE  CASCADE;
 
 -- Reference: ReservationsInfo_Tables (table: ReservationsInfo)
 ALTER TABLE ReservationsInfo ADD CONSTRAINT ReservationsInfo_Tables

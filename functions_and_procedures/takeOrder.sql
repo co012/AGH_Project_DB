@@ -9,9 +9,11 @@ DECLARE @discount REAL;
 
 SET @discount = dbo.getDiscount(@discountType,@customerId)
 
-SET @finalPrice = @priceWithoutDiscount * (1 - @discount)
+SET @finalPrice = @priceWithoutDiscount * (1 - ISNULL(@discount,0))
 
 DECLARE @withReservation BIT = (SELECT (CASE COUNT(*) WHEN 0 THEN 0 ELSE 1 END)  FROM @reservations)
+IF @withReservation = 1 AND @customerId = NULL RETURN 
+IF (SELECT COUNT(*) FROM @orderDetails) > (SELECT COUNT(*) FROM MenuView INNER JOIN @orderDetails od ON od.MenuItemId = MenuView.MenuItemId) RETURN; 
 
 DECLARE @orderIdTable TABLE(orderId INT);
 INSERT INTO Orders(BranchId,CustomerId,EmployeeId,StatusId,WithReservation,PriceWithoutDiscount,DiscountTypeId,Discount,FinalPrice,Paid,OrderMadeDate,OrderApprovedDate,OrderServeDate)
@@ -21,7 +23,12 @@ VALUES(@branchId,@customerId,@employeeId,2,@withReservation,@priceWithoutDiscoun
 DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
 
 INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @orderDetails) 
+BEGIN
+DELETE FROM Orders WHERE OrderId = @orderId;
+RETURN
+END
 INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
-
+IF @@ROWCOUNT < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
 
 END
