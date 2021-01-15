@@ -1,3 +1,4 @@
+SET NOCOUNT ON
 -- Created by Vertabelo (http://vertabelo.com)
 -- Last modification date: 2021-01-15 16:36:35.283
 
@@ -288,4 +289,4 @@ ALTER TABLE UnavailableMenuItems ADD CONSTRAINT UnavalibleMenuItems_MenuItems
     ON UPDATE  CASCADE;
 
 -- End of file.
-
+SET NOCOUNT OFF

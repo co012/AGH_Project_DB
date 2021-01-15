@@ -38,13 +38,14 @@
     - [getPreviousYearMonth](#getpreviousyearmonth)
     - [getPreviousYearQuater](#getpreviousyearquater)
     - [getRaportAboutCustomers](#getraportaboutcustomers)
-    - [getMonthlyWeeklyAboutDiscounts](#getmonthlyweeklyaboutdiscounts)
+    - [getWeeklyReportAboutDiscounts](#getweeklyreportaboutdiscounts)
     - [getWeeklyRaportAboutMenu](#getweeklyraportaboutmenu)
     - [getWeeklyReportAboutOrders](#getweeklyreportaboutorders)
     - [getWeeklyRaportAboutReservations](#getweeklyraportaboutreservations)
     - [getYearMonth](#getyearmonth)
     - [getYearQuater](#getyearquater)
     - [makeOrder](#makeorder)
+    - [replaceMenu](#replacemenu)
     - [serveOrder](#serveorder)
     - [takeInvoiceForMonth](#takeinvoiceformonth)
     - [takeInvoiceForOrder](#takeinvoicefororder)
@@ -956,7 +957,7 @@ RETURN;
 END
 ```
 
-### getMonthlyWeeklyAboutDiscounts
+### getWeeklyReportAboutDiscounts
 Funkcja tworząca raport tygodniowy na temat rabatów.
 #### Parametry
 **@date** - data zawierająca tydzień dla którego ma zostać stworzony raport  
@@ -1155,6 +1156,24 @@ INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
 IF @@ROWCOUNT < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
 
 END
+```
+### replaceMenu
+Procedura zmieniająca menu
+
+#### Parametry
+**@replacement** - Typ tablicowy o polach (OldMenuItemId INT,NewMenuItemId INT) OldMenuItemId to identyfikator dania do usunięcia z menu NewMenuItemId to identyfikator dania do wstawienia do menu
+
+```TSQL
+
+CREATE PROCEDURE replaceMenu(@replacement MenuReplacement READONLY)
+AS
+BEGIN
+UPDATE MenuItems SET LastTimeRemoved = GETDATE() WHERE MenuItemId in (SELECT OldMenuItemId FROM @replacement) AND MenuItemId IN (SELECT MenuItemId FROM MenuView)
+DELETE FROM UnavailiableMenuItems WHERE MenuItemId IN (SELECT OldMenuItemId FROM @replacement)
+UPDATE MenuItems SET LastTimeAdded = GETDATE() WHERE MenuItemId in (SELECT NewMenuItemId FROM @replacement)
+
+END
+
 ```
 
 ### serveOrder

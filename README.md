@@ -17,7 +17,6 @@ generator : python
 4) Probably done  
 
 
-## TODO  
-Write triggers  
-Make order generation better   
+### Else
+Documentation is in doc folder
 
