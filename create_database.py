@@ -9,7 +9,7 @@ from generators.orders_generator_simple import populateDatabaseWithOrders
 from os import listdir
 import pyodbc
 
-ip = "192.168.55.101"
+ip = "192.168.55.104"
 login = "SA"
 password = "ZAQ!2wsx"
 database = "Project"
@@ -35,6 +35,7 @@ runF("i_guess_projek_create.sql")
 runF("custom_types.sql")
 addElementsFromFolderToDatabase("functions_and_procedures/")
 addElementsFromFolderToDatabase("views/")
+addElementsFromFolderToDatabase("triggers/")
 cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER='+ip+';DATABASE='+database+';UID='+login+';PWD='+password)
 cursor = cnxn.cursor()
 dataFolderPath = "generators/data/"
