@@ -25,12 +25,12 @@ VALUES(@branchId,@customerId,1,@withReservation,@priceWithoutDiscount,@discountT
 DECLARE @orderId INT = (SELECT TOP 1 orderId FROM @orderIdTable);
 
 INSERT INTO OrderDetails SELECT @orderId,MenuItemId,Quantity FROM @orderDetails;
-IF @@ROWCOUNT < (SELECT COUNT(*) FROM @orderDetails) 
+IF (SELECT COUNT(*) FROM OrderDetails WHERE OrderId = @orderId ) < (SELECT COUNT(*) FROM @orderDetails) 
 BEGIN
 DELETE FROM Orders WHERE OrderId = @orderId;
 RETURN
 END
 INSERT INTO ReservationsInfo SELECT @orderId,* FROM @reservations
-IF @@ROWCOUNT < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
+IF (SELECT COUNT(*) FROM ReservationsInfo WHERE OrderId = @orderId) < (SELECT COUNT(*) FROM @reservations) DELETE FROM Orders WHERE OrderId = @orderId
 
 END
